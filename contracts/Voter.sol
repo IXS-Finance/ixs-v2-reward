@@ -17,6 +17,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC2771Context} from "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {VelodromeTimeLibrary} from "./libraries/VelodromeTimeLibrary.sol";
+import {IVault} from "./interfaces/IVault.sol";
+import {IBalancerPool} from "./interfaces/IBalancerPool.sol";
 
 /// @title Velodrome V2 Voter
 /// @author velodrome.finance, @figs999, @pegahcarter
@@ -84,7 +86,9 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IVoter
     mapping(address => uint256) public claimable;
 
-    constructor(address _forwarder, address _ve, address _factoryRegistry) ERC2771Context(_forwarder) {
+    IVault public vault;
+
+    constructor(address _forwarder, address _ve, address _factoryRegistry, address _vault) ERC2771Context(_forwarder) {
         forwarder = _forwarder;
         ve = _ve;
         factoryRegistry = _factoryRegistry;
@@ -95,6 +99,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         epochGovernor = _sender;
         emergencyCouncil = _sender;
         maxVotingNum = 30;
+        vault = IVault(_vault);
     }
 
     modifier onlyNewEpoch(uint256 _tokenId) {
@@ -326,22 +331,38 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         (address votingRewardsFactory, address gaugeFactory) = IFactoryRegistry(factoryRegistry).factoriesToPoolFactory(
             _poolFactory
         );
-        address[] memory rewards = new address[](2);
-        bool isPool = IPoolFactory(_poolFactory).isPool(_pool);
+        // bool isPool = IPoolFactory(_poolFactory).isPool(_pool);
+        // {
+        //     // stack too deep
+        //     address token0;
+        //     address token1;
+        //     if (isPool) {
+        //         token0 = IPool(_pool).token0();
+        //         token1 = IPool(_pool).token1();
+        //         rewards[0] = token0;
+        //         rewards[1] = token1;
+        //     }
+
+        //     if (sender != governor) {
+        //         if (!isPool) revert NotAPool();
+        //         if (!isWhitelistedToken[token0] || !isWhitelistedToken[token1]) revert NotWhitelistedToken();
+        //     }
+        // }
+        bool isPool;
+        address[] memory rewards;
         {
             // stack too deep
-            address token0;
-            address token1;
-            if (isPool) {
-                token0 = IPool(_pool).token0();
-                token1 = IPool(_pool).token1();
-                rewards[0] = token0;
-                rewards[1] = token1;
-            }
-
-            if (sender != governor) {
-                if (!isPool) revert NotAPool();
-                if (!isWhitelistedToken[token0] || !isWhitelistedToken[token1]) revert NotWhitelistedToken();
+            IERC20[] memory tokens;
+            bytes32 _poolId = IBalancerPool(_pool).getPoolId();
+            if(_poolId == bytes32(0)) revert NotAPool();
+            isPool = true;
+            (tokens, , ) = IVault(vault).getPoolTokens(_poolId);
+            rewards = new address[](tokens.length);
+            for (uint256 i = 0; i < tokens.length; i++) {
+                rewards[i] = address(tokens[i]);
+                if (sender != governor) {
+                    if (!isWhitelistedToken[rewards[i]]) revert NotWhitelistedToken();
+                }
             }
         }
 

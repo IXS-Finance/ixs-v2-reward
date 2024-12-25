@@ -12,6 +12,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC2771Context} from "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {VelodromeTimeLibrary} from "../libraries/VelodromeTimeLibrary.sol";
+import {IPoolFees} from "../interfaces/IPoolFees.sol";
+import {IBalancerPool} from "../interfaces/IBalancerPool.sol";
 
 /// @title Velodrome V2 Gauge
 /// @author veldorome.finance, @figs999, @pegahcarter
@@ -54,10 +56,11 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IGauge
     mapping(uint256 => uint256) public rewardRateByEpoch;
 
-    /// @inheritdoc IGauge
-    uint256 public fees0;
-    /// @inheritdoc IGauge
-    uint256 public fees1;
+    // uint256 public fees0;
+    // uint256 public fees1;
+    address public poolFees;
+
+    uint256[] public tokenFees;
 
     constructor(
         address _forwarder,
@@ -65,7 +68,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         address _feesVotingReward,
         address _rewardToken,
         address _voter,
-        bool _isPool
+        bool _isPool,
+        address _poolFees
     ) ERC2771Context(_forwarder) {
         stakingToken = _stakingToken;
         feesVotingReward = _feesVotingReward;
@@ -73,33 +77,61 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         voter = _voter;
         isPool = _isPool;
         team = IVotingEscrow(IVoter(voter).ve()).team();
+        poolFees = _poolFees;
     }
 
-    function _claimFees() internal returns (uint256 claimed0, uint256 claimed1) {
-        if (!isPool) {
-            return (0, 0);
-        }
-        (claimed0, claimed1) = IPool(stakingToken).claimFees();
-        if (claimed0 > 0 || claimed1 > 0) {
-            uint256 _fees0 = fees0 + claimed0;
-            uint256 _fees1 = fees1 + claimed1;
-            (address _token0, address _token1) = IPool(stakingToken).tokens();
-            if (_fees0 > DURATION) {
-                fees0 = 0;
-                IERC20(_token0).safeApprove(feesVotingReward, _fees0);
-                IReward(feesVotingReward).notifyRewardAmount(_token0, _fees0);
-            } else {
-                fees0 = _fees0;
-            }
-            if (_fees1 > DURATION) {
-                fees1 = 0;
-                IERC20(_token1).safeApprove(feesVotingReward, _fees1);
-                IReward(feesVotingReward).notifyRewardAmount(_token1, _fees1);
-            } else {
-                fees1 = _fees1;
-            }
+    // function _claimFees() internal returns (uint256 claimed0, uint256 claimed1) {
+    //     if (!isPool) {
+    //         return (0, 0);
+    //     }
+    //     (claimed0, claimed1) = IPool(stakingToken).claimFees();
+    //     if (claimed0 > 0 || claimed1 > 0) {
+    //         uint256 _fees0 = fees0 + claimed0;
+    //         uint256 _fees1 = fees1 + claimed1;
+    //         (address _token0, address _token1) = IPool(stakingToken).tokens();
+    //         if (_fees0 > DURATION) {
+    //             fees0 = 0;
+    //             IERC20(_token0).safeApprove(feesVotingReward, _fees0);
+    //             IReward(feesVotingReward).notifyRewardAmount(_token0, _fees0);
+    //         } else {
+    //             fees0 = _fees0;
+    //         }
+    //         if (_fees1 > DURATION) {
+    //             fees1 = 0;
+    //             IERC20(_token1).safeApprove(feesVotingReward, _fees1);
+    //             IReward(feesVotingReward).notifyRewardAmount(_token1, _fees1);
+    //         } else {
+    //             fees1 = _fees1;
+    //         }
 
-            emit ClaimFees(_msgSender(), claimed0, claimed1);
+    //         emit ClaimFees(_msgSender(), claimed0, claimed1);
+    //     }
+    // }
+
+    function _claimFees() internal {
+
+        if (!isPool) {
+            return;
+        }
+        address[] memory tokens;
+        uint256[] memory claimableAmounts;
+        bytes32 _poolId = IBalancerPool(stakingToken).getPoolId();
+        (tokens, claimableAmounts) = IPoolFees(poolFees).claimPoolTokensFees(_poolId, address(this));
+
+        for(uint256 i = 0; i < tokens.length; i++) {
+            IERC20 token = IERC20(tokens[i]);
+            uint256 claimableAmount = claimableAmounts[i];
+            if (claimableAmount > 0) {
+                uint256 _fees = tokenFees[i] + claimableAmount;
+                if(_fees > DURATION){
+                    tokenFees[i] = 0;
+                    token.safeApprove(feesVotingReward, _fees);
+                    IReward(feesVotingReward).notifyRewardAmount(address(token), _fees);
+                } else {
+                    tokenFees[i] = _fees;
+                }
+                emit ClaimPoolFees(_msgSender(), address(token), claimableAmount);
+            }
         }
     }
 

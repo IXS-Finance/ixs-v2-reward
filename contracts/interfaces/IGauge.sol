@@ -15,6 +15,7 @@ interface IGauge {
     event NotifyReward(address indexed from, uint256 amount);
     event ClaimFees(address indexed from, uint256 claimed0, uint256 claimed1);
     event ClaimRewards(address indexed from, uint256 amount);
+    event ClaimPoolFees(address indexed sender, address indexed token, uint256 claimedAmount);
 
     /// @notice Address of the pool LP token which is deposited (staked) for rewards
     function stakingToken() external view returns (address);
@@ -62,10 +63,10 @@ interface IGauge {
     function rewardRateByEpoch(uint256) external view returns (uint256);
 
     /// @notice Cached amount of fees generated from the Pool linked to the Gauge of token0
-    function fees0() external view returns (uint256);
+    // function fees0() external view returns (uint256);
 
     /// @notice Cached amount of fees generated from the Pool linked to the Gauge of token1
-    function fees1() external view returns (uint256);
+    // function fees1() external view returns (uint256);
 
     /// @notice Get the current reward rate per unit of stakingToken deposited
     function rewardPerToken() external view returns (uint256 _rewardPerToken);

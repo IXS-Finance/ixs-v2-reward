@@ -29,7 +29,9 @@ contract PoolTest is BaseTest {
         escrow.setArtProxy(address(artProxy));
 
         distributor = new RewardsDistributor(address(escrow));
-        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry));
+        //voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry));
+
+voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault);
         router = new Router(
             address(forwarder),
             address(factoryRegistry),

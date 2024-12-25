@@ -48,7 +48,9 @@ contract ImbalanceTest is BaseTest {
         deployFactories();
         factory.setFee(true, 1);
         factory.setFee(false, 1);
-        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry));
+        //voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry));
+
+voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault);
         router = new Router(
             address(forwarder),
             address(factoryRegistry),
@@ -119,7 +121,9 @@ contract ImbalanceTest is BaseTest {
     function deployVoter() public {
         routerAddLiquidity();
 
-        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry));
+        //voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry));
+
+        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault);
         address[] memory tokens = new address[](4);
         tokens[0] = address(USDC);
         tokens[1] = address(FRAX);

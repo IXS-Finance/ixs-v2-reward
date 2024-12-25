@@ -69,6 +69,8 @@ abstract contract Base is Script, Test {
     /// @dev Global address to set
     address public allowedManager;
 
+    address public vault;
+
     function _coreSetup() public {
         deployFactories();
 
@@ -80,7 +82,7 @@ abstract contract Base is Script, Test {
 
         // Setup voter and distributor
         distributor = new RewardsDistributor(address(escrow));
-        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry));
+        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault);
 
         escrow.setVoterAndDistributor(address(voter), address(distributor));
         escrow.setAllowedManager(allowedManager);
@@ -108,7 +110,7 @@ abstract contract Base is Script, Test {
         factory = new PoolFactory(address(implementation));
 
         votingRewardsFactory = new VotingRewardsFactory();
-        gaugeFactory = new GaugeFactory();
+        gaugeFactory = new GaugeFactory(vault);
         managedRewardsFactory = new ManagedRewardsFactory();
         factoryRegistry = new FactoryRegistry(
             address(factory),

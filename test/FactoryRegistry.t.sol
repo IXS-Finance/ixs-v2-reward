@@ -24,7 +24,7 @@ contract FactoryRegistryTest is BaseTest {
         factory2.setFee(false, 1);
 
         votingRewardsFactory2 = new VotingRewardsFactory();
-        gaugeFactory2 = new GaugeFactory();
+        gaugeFactory2 = new GaugeFactory(vault);
         factoryRegistry2 = new FactoryRegistry(
             address(factory2),
             address(votingRewardsFactory),
