@@ -50,7 +50,7 @@ contract ImbalanceTest is BaseTest {
         factory.setFee(false, 1);
         //voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry));
 
-voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault);
+        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault);
         router = new Router(
             address(forwarder),
             address(factoryRegistry),

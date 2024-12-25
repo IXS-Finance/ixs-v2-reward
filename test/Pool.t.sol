@@ -31,7 +31,7 @@ contract PoolTest is BaseTest {
         distributor = new RewardsDistributor(address(escrow));
         //voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry));
 
-voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault);
+        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault);
         router = new Router(
             address(forwarder),
             address(factoryRegistry),
