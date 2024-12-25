@@ -57,7 +57,8 @@ contract DeployVelodromeV2 is Base {
         vm.startBroadcast(deployerAddress);
 
         // deploy VELO
-        VELO = new Velo();
+        // VELO = new Velo();
+        VELO = Velo(0x949546713004ee02537292b1F41046f705909191);
 
         tokens.push(address(VELO));
     }

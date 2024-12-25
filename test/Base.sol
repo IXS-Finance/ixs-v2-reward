@@ -99,9 +99,9 @@ abstract contract Base is Script, Test {
         // Setup minter
         minter = new Minter(address(voter), address(escrow), address(distributor));
         distributor.setMinter(address(minter));
-        VELO.setMinter(address(minter));
+        // VELO.setMinter(address(minter));
 
-        /// @dev tokens are already set in the respective setupBefore()
+        // /// @dev tokens are already set in the respective setupBefore()
         voter.initialize(tokens, address(minter));
     }
 

@@ -35,6 +35,9 @@
     "format": "prettier --write 'contracts/**/*.(sol|json)' 'test/**/*.(sol|json)' 'script/**/*.(sol|ts)'",
     "format:check": "prettier --check 'contracts/**/*.*(sol|json)' 'test/**/*.(sol|json)' 'script/**/*.(sol|ts)'",
     "lint": "solhint --fix 'contracts/**/*.sol' 'test/**/*.sol' 'script/**/*.sol'",
-    "lint:check": "solhint 'contracts/**/*.sol' 'test/**/*.sol' 'script/**/*.sol'"
+    "lint:check": "solhint 'contracts/**/*.sol' 'test/**/*.sol' 'script/**/*.sol'",
+    "build": "forge build --skip test",
+    "build-test": "forge build",
+    "deploy": "forge script script/DeployVelodromeV2.s.sol:DeployVelodromeV2 --broadcast --slow --rpc-url baseSepolia  --verify -vvvv --private-key $PRIVATE_KEY_DEPLOY"
   }
 }
