@@ -348,21 +348,17 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         //         if (!isWhitelistedToken[token0] || !isWhitelistedToken[token1]) revert NotWhitelistedToken();
         //     }
         // }
-        bool isPool;
         address[] memory rewards;
         {
             // stack too deep
             IERC20[] memory tokens;
             bytes32 _poolId = IBalancerPool(_pool).getPoolId();
             if(_poolId == bytes32(0)) revert NotAPool();
-            isPool = true;
             (tokens, , ) = IVault(vault).getPoolTokens(_poolId);
             rewards = new address[](tokens.length);
             for (uint256 i = 0; i < tokens.length; i++) {
                 rewards[i] = address(tokens[i]);
-                if (sender != governor) {
-                    if (!isWhitelistedToken[rewards[i]]) revert NotWhitelistedToken();
-                }
+                if (sender != governor) revert NotGovernor();
             }
         }
 
@@ -374,7 +370,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
             _pool,
             _feeVotingReward,
             rewardToken,
-            isPool
+            true
         );
 
         gaugeToFees[_gauge] = _feeVotingReward;

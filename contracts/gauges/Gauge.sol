@@ -60,8 +60,6 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     // uint256 public fees1;
     address public poolFees;
 
-    uint256[] public tokenFees;
-
     constructor(
         address _forwarder,
         address _stakingToken,
@@ -109,7 +107,6 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     // }
 
     function _claimFees() internal {
-
         if (!isPool) {
             return;
         }
@@ -122,14 +119,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             IERC20 token = IERC20(tokens[i]);
             uint256 claimableAmount = claimableAmounts[i];
             if (claimableAmount > 0) {
-                uint256 _fees = tokenFees[i] + claimableAmount;
-                if(_fees > DURATION){
-                    tokenFees[i] = 0;
-                    token.safeApprove(feesVotingReward, _fees);
-                    IReward(feesVotingReward).notifyRewardAmount(address(token), _fees);
-                } else {
-                    tokenFees[i] = _fees;
-                }
+                token.safeApprove(feesVotingReward, claimableAmount);
+                IReward(feesVotingReward).notifyRewardAmount(address(token), claimableAmount);
                 emit ClaimPoolFees(_msgSender(), address(token), claimableAmount);
             }
         }
