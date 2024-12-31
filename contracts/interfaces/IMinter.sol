@@ -29,7 +29,7 @@ interface IMinter {
     function ve() external view returns (IVotingEscrow);
 
     /// @notice Interface of RewardsDistributor.sol
-    function rewardsDistributor() external view returns (IRewardsDistributor);
+    // function rewardsDistributor() external view returns (IRewardsDistributor);
 
     /// @notice Duration of epoch in seconds
     function WEEK() external view returns (uint256);
@@ -53,10 +53,10 @@ interface IMinter {
     function TAIL_START() external view returns (uint256);
 
     /// @notice Maximum team percentage in basis points
-    function MAXIMUM_TEAM_RATE() external view returns (uint256);
+    // function MAXIMUM_TEAM_RATE() external view returns (uint256);
 
     /// @notice Current team percentage in basis points
-    function teamRate() external view returns (uint256);
+    // function teamRate() external view returns (uint256);
 
     /// @notice Tail emissions rate in basis points
     function tailEmissionRate() external view returns (uint256);
@@ -88,7 +88,7 @@ interface IMinter {
 
     /// @notice Creates a request to change the current team's percentage
     /// @param _rate New team rate to be set in basis points
-    function setTeamRate(uint256 _rate) external;
+    // function setTeamRate(uint256 _rate) external;
 
     /// @notice Allows epoch governor to modify the tail emission rate by at most 1 basis point
     ///         per epoch to a maximum of 100 basis points or to a minimum of 1 basis point.
@@ -108,7 +108,7 @@ interface IMinter {
     ///         velo.totalSupply is the total ve supply minted
     /// @param _minted Amount of VELO minted this epoch
     /// @return _growth Rebases
-    function calculateGrowth(uint256 _minted) external view returns (uint256 _growth);
+    // function calculateGrowth(uint256 _minted) external view returns (uint256 _growth);
 
     /// @notice Processes emissions and rebases. Callable once per epoch (1 week).
     /// @return _period Start of current epoch.

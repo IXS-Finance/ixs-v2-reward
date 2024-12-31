@@ -9,6 +9,9 @@ import {IVoter} from "./interfaces/IVoter.sol";
 import {IVotingEscrow} from "./interfaces/IVotingEscrow.sol";
 import {IEpochGovernor} from "./interfaces/IEpochGovernor.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IFunder} from "./interfaces/IFunder.sol";
+import {console} from "forge-std/console.sol";
+
 
 /// @title Minter
 /// @author velodrome.finance, @figs999, @pegahcarter
@@ -22,10 +25,11 @@ contract Minter is IMinter {
     /// @inheritdoc IMinter
     IVotingEscrow public immutable ve;
     /// @inheritdoc IMinter
-    IRewardsDistributor public immutable rewardsDistributor;
+    // IRewardsDistributor public immutable rewardsDistributor;
 
     /// @inheritdoc IMinter
-    uint256 public constant WEEK = 1 weeks;
+    // uint256 public constant WEEK = 1 weeks;
+    uint256 public constant WEEK = 5 minutes;
     /// @inheritdoc IMinter
     uint256 public constant WEEKLY_DECAY = 9_900;
     /// @inheritdoc IMinter
@@ -39,9 +43,9 @@ contract Minter is IMinter {
     /// @inheritdoc IMinter
     uint256 public constant TAIL_START = 6_000_000 * 1e18;
     /// @inheritdoc IMinter
-    uint256 public constant MAXIMUM_TEAM_RATE = 500;
+    // uint256 public constant MAXIMUM_TEAM_RATE = 500;
     /// @inheritdoc IMinter
-    uint256 public teamRate = 500; // team emissions start at 5%
+    // uint256 public teamRate = 500; // team emissions start at 5%
     /// @inheritdoc IMinter
     uint256 public tailEmissionRate = 30;
     /// @inheritdoc IMinter
@@ -54,18 +58,21 @@ contract Minter is IMinter {
     address public team;
     /// @inheritdoc IMinter
     address public pendingTeam;
+    address public funder;
 
     constructor(
         address _voter, // the voting & distribution system
         address _ve, // the ve(3,3) system that will be locked into
-        address _rewardsDistributor // the distribution system that ensures users aren't diluted
+        address _funder // the funder that will be used to fund the system
+        // address _rewardsDistributor // the distribution system that ensures users aren't diluted
     ) {
         velo = IVelo(IVotingEscrow(_ve).token());
         voter = IVoter(_voter);
         ve = IVotingEscrow(_ve);
         team = msg.sender;
-        rewardsDistributor = IRewardsDistributor(_rewardsDistributor);
+        // rewardsDistributor = IRewardsDistributor(_rewardsDistributor);
         activePeriod = ((block.timestamp) / WEEK) * WEEK; // allow emissions this coming epoch
+        funder = _funder;
     }
 
     /// @inheritdoc IMinter
@@ -84,18 +91,18 @@ contract Minter is IMinter {
     }
 
     /// @inheritdoc IMinter
-    function setTeamRate(uint256 _rate) external {
-        if (msg.sender != team) revert NotTeam();
-        if (_rate > MAXIMUM_TEAM_RATE) revert RateTooHigh();
-        teamRate = _rate;
-    }
+    // function setTeamRate(uint256 _rate) external {
+    //     if (msg.sender != team) revert NotTeam();
+    //     if (_rate > MAXIMUM_TEAM_RATE) revert RateTooHigh();
+    //     teamRate = _rate;
+    // }
 
     /// @inheritdoc IMinter
-    function calculateGrowth(uint256 _minted) public view returns (uint256 _growth) {
-        uint256 _veTotal = ve.totalSupplyAt(activePeriod - 1);
-        uint256 _veloTotal = velo.totalSupply();
-        return (((((_minted * _veTotal) / _veloTotal) * _veTotal) / _veloTotal) * _veTotal) / _veloTotal / 2;
-    }
+    // function calculateGrowth(uint256 _minted) public view returns (uint256 _growth) {
+    //     uint256 _veTotal = ve.totalSupplyAt(activePeriod - 1);
+    //     uint256 _veloTotal = velo.totalSupply();
+    //     return (((((_minted * _veTotal) / _veloTotal) * _veTotal) / _veloTotal) * _veTotal) / _veloTotal / 2;
+    // }
 
     /// @inheritdoc IMinter
     function nudge() external {
@@ -139,22 +146,21 @@ contract Minter is IMinter {
                 weekly = _weekly;
             }
 
-            uint256 _growth = calculateGrowth(_emission);
+            // uint256 _growth = calculateGrowth(_emission);
 
-            uint256 _rate = teamRate;
-            uint256 _teamEmissions = (_rate * (_growth + _emission)) / (MAX_BPS);
+            // uint256 _rate = teamRate;
+            // uint256 _teamEmissions = (_rate * (_growth + _emission)) / (MAX_BPS);
 
-            uint256 _required = _growth + _emission + _teamEmissions;
+            // uint256 _required = _growth + _emission;
             uint256 _balanceOf = velo.balanceOf(address(this));
-            if (_balanceOf < _required) {
-                velo.mint(address(this), _required - _balanceOf);
+            if (_balanceOf < _emission) {
+                IFunder(funder).withdraw(address(this), _emission - _balanceOf);
             }
 
-            velo.safeTransfer(address(team), _teamEmissions);
-            velo.safeTransfer(address(rewardsDistributor), _growth);
-            rewardsDistributor.checkpointToken(); // checkpoint token balance that was just minted in rewards distributor
-
-            velo.safeApprove(address(voter), _emission);
+            // velo.safeTransfer(address(team), _teamEmissions);
+            // velo.safeTransfer(address(rewardsDistributor), _growth);
+            // rewardsDistributor.checkpointToken(); // checkpoint token balance that was just minted in rewards distributor
+            velo.approve(address(voter), _emission);
             voter.notifyRewardAmount(_emission);
 
             emit Mint(msg.sender, _emission, velo.totalSupply(), _tail);
