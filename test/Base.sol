@@ -29,7 +29,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SigUtils} from "test/utils/SigUtils.sol";
 import {Forwarder} from "@opengsn/contracts/src/forwarder/Forwarder.sol";
-import {Funder} from "contracts/Funder.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/Test.sol";
@@ -71,7 +70,6 @@ abstract contract Base is Script, Test {
     address public allowedManager;
 
     address public vault = 0xF40AC6566b5590aDA95c7a0e422b11ee2740ac0a;
-    Funder public funder;
 
     function _coreSetup() public {
         deployFactories();
@@ -100,10 +98,8 @@ abstract contract Base is Script, Test {
 
         // Setup minter
         // minter = new Minter(address(voter), address(escrow), address(distributor));
-        funder = new Funder(address(VELO));
-        minter = new Minter(address(voter), address(escrow), address(funder));
+        minter = new Minter(address(voter), address(escrow));
         distributor.setMinter(address(minter));
-        funder.setMinter(address(minter));
         // VELO.setMinter(address(minter));
 
         // /// @dev tokens are already set in the respective setupBefore()

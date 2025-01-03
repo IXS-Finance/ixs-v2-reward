@@ -15,9 +15,11 @@ interface IMinter {
     error NotEpochGovernor();
     error TailEmissionsInactive();
 
-    event Mint(address indexed _sender, uint256 _weekly, uint256 _circulating_supply, bool indexed _tail);
+    // event Mint(address indexed _sender, uint256 _weekly, uint256 _circulating_supply, bool indexed _tail);
+    event Mint(address indexed _sender, uint256 _weekly);
     event Nudge(uint256 indexed _period, uint256 _oldRate, uint256 _newRate);
     event AcceptTeam(address indexed _newTeam);
+    event ChangeWeekly(uint256 oldWeekly, uint256 newWeekly);
 
     /// @notice Interface of Velo.sol
     function velo() external view returns (IVelo);
@@ -113,4 +115,8 @@ interface IMinter {
     /// @notice Processes emissions and rebases. Callable once per epoch (1 week).
     /// @return _period Start of current epoch.
     function updatePeriod() external returns (uint256 _period);
+
+    /// @notice change weekly emission
+    function changeWeekly(uint256 _newWeekly) external;
+
 }
