@@ -29,6 +29,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SigUtils} from "test/utils/SigUtils.sol";
 import {Forwarder} from "@opengsn/contracts/src/forwarder/Forwarder.sol";
+import {MockVault} from "test/utils/MockVault.sol";
+import {MockPoolFees} from "test/utils/MockPoolFees.sol";
+import {MockPool} from "test/utils/MockPool.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/Test.sol";
@@ -50,7 +53,7 @@ abstract contract Base is Script, Test {
 
     /// @dev Core v2 Deployment
     Forwarder public forwarder;
-    Pool public implementation;
+    MockPool public implementation;
     Router public router;
     VotingEscrow public escrow;
     VeArtProxy public artProxy;
@@ -69,9 +72,13 @@ abstract contract Base is Script, Test {
     /// @dev Global address to set
     address public allowedManager;
 
-    address public vault = 0xF40AC6566b5590aDA95c7a0e422b11ee2740ac0a;
+    address public vault;// = 0xF40AC6566b5590aDA95c7a0e422b11ee2740ac0a;
+    address public poolFees;
 
     function _coreSetup() public {
+        // vault = vault == address(0) ? address(new MockVault()) : vault;
+        poolFees = address(new MockPoolFees());
+        vault = address(new MockVault(poolFees));
         deployFactories();
 
         forwarder = new Forwarder();
@@ -100,14 +107,14 @@ abstract contract Base is Script, Test {
         // minter = new Minter(address(voter), address(escrow), address(distributor));
         minter = new Minter(address(voter), address(escrow));
         distributor.setMinter(address(minter));
-        // VELO.setMinter(address(minter));
+        VELO.setMinter(address(minter));
 
         // /// @dev tokens are already set in the respective setupBefore()
         voter.initialize(tokens, address(minter));
     }
 
     function deployFactories() public {
-        implementation = new Pool();
+        implementation = new MockPool();
         factory = new PoolFactory(address(implementation));
 
         votingRewardsFactory = new VotingRewardsFactory();

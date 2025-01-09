@@ -27,8 +27,8 @@ contract Minter is IMinter {
     // IRewardsDistributor public immutable rewardsDistributor;
 
     /// @inheritdoc IMinter
-    // uint256 public constant WEEK = 1 weeks;
-    uint256 public constant WEEK = 5 minutes;
+    uint256 public constant WEEK = 1 weeks;
+    // uint256 public constant WEEK = 5 minutes;
     /// @inheritdoc IMinter
     uint256 public constant WEEKLY_DECAY = 9_900;
     /// @inheritdoc IMinter
@@ -129,9 +129,9 @@ contract Minter is IMinter {
             activePeriod = _period;
             uint256 _weekly = weekly;
             uint256 _balanceOf = velo.balanceOf(address(this));
-            if (_balanceOf < _weekly) {
-                _weekly = _balanceOf;
-            }
+            // if (_balanceOf < _weekly) {
+            //     _weekly = _balanceOf;
+            // }
 
             velo.approve(address(voter), _weekly);
             voter.notifyRewardAmount(_weekly);

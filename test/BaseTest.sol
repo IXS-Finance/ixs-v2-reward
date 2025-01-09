@@ -9,6 +9,7 @@ import {IPool, Pool} from "contracts/Pool.sol";
 import {TestOwner} from "utils/TestOwner.sol";
 import {MockERC20} from "utils/MockERC20.sol";
 import {MockWETH} from "utils/MockWETH.sol";
+import {MockPool} from "utils/MockPool.sol";
 
 abstract contract BaseTest is Base, TestOwner {
     uint256 constant USDC_1 = 1e6;
@@ -42,9 +43,9 @@ abstract contract BaseTest is Base, TestOwner {
     MockERC20 WEVE;
     MockERC20 LR; // late reward
 
-    Pool pool;
-    Pool pool2;
-    Pool pool3;
+    MockPool pool;
+    MockPool pool2;
+    MockPool pool3;
 
     FeesVotingReward feesVotingReward;
     BribeVotingReward bribeVotingReward;
@@ -120,11 +121,12 @@ abstract contract BaseTest is Base, TestOwner {
     }
 
     function _testSetupAfter() public {
+
         // Setup governors
         governor = new VeloGovernor(escrow, IVoter(voter));
         epochGovernor = new EpochGovernor(address(forwarder), escrow, address(minter), IVoter(voter));
-        voter.setEpochGovernor(address(epochGovernor));
-        voter.setGovernor(address(governor));
+        // voter.setEpochGovernor(address(epochGovernor));
+        // voter.setGovernor(address(governor));
 
         assertEq(factory.allPoolsLength(), 0);
         assertEq(router.defaultFactory(), address(factory));
@@ -132,16 +134,29 @@ abstract contract BaseTest is Base, TestOwner {
         deployPoolWithOwner(address(owner));
 
         // USDC - FRAX stable
+        address[] memory l1 = new address[](2);
+        l1[0] = address(USDC);
+        l1[1] = address(FRAX);
+        MockVault(vault).setPoolTokens(address(pool), l1);
         gauge = Gauge(voter.createGauge(address(factory), address(pool)));
+        // vm.stopPrank();
         feesVotingReward = FeesVotingReward(voter.gaugeToFees(address(gauge)));
         bribeVotingReward = BribeVotingReward(voter.gaugeToBribe(address(gauge)));
 
         // USDC - FRAX unstable
+        address[] memory l2 = new address[](2);
+        l2[0] = address(USDC);
+        l2[1] = address(FRAX);
+        MockVault(vault).setPoolTokens(address(pool2), l2);
         gauge2 = Gauge(voter.createGauge(address(factory), address(pool2)));
         feesVotingReward2 = FeesVotingReward(voter.gaugeToFees(address(gauge2)));
         bribeVotingReward2 = BribeVotingReward(voter.gaugeToBribe(address(gauge2)));
 
         // FRAX - DAI stable
+        address[] memory l3 = new address[](2);
+        l3[0] = address(FRAX);
+        l3[1] = address(DAI);
+        MockVault(vault).setPoolTokens(address(pool3), l3);
         gauge3 = Gauge(voter.createGauge(address(factory), address(pool3)));
         feesVotingReward3 = FeesVotingReward(voter.gaugeToFees(address(gauge3)));
         bribeVotingReward3 = BribeVotingReward(voter.gaugeToBribe(address(gauge3)));
@@ -156,7 +171,8 @@ abstract contract BaseTest is Base, TestOwner {
             )
         );
         sigUtils = new SigUtils(domainSeparator);
-
+        voter.setEpochGovernor(address(epochGovernor));
+        voter.setGovernor(address(governor));
         vm.label(address(owner), "Owner");
         vm.label(address(owner2), "Owner 2");
         vm.label(address(owner3), "Owner 3");
@@ -268,11 +284,11 @@ abstract contract BaseTest is Base, TestOwner {
         // last arg default as these are all v2 pools
         address create2address = router.poolFor(address(FRAX), address(USDC), true, address(0));
         address address1 = factory.getPool(address(FRAX), address(USDC), true);
-        pool = Pool(address1);
+        pool = MockPool(address1);
         address address2 = factory.getPool(address(FRAX), address(USDC), false);
-        pool2 = Pool(address2);
+        pool2 = MockPool(address2);
         address address3 = factory.getPool(address(FRAX), address(DAI), true);
-        pool3 = Pool(address3);
+        pool3 = MockPool(address3);
         assertEq(address(pool), create2address);
     }
 

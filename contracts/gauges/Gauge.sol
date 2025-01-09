@@ -120,8 +120,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             uint256 claimableAmount = claimableAmounts[i];
             if (claimableAmount > 0) {
                 token.safeApprove(feesVotingReward, claimableAmount);
-                IReward(feesVotingReward).notifyRewardAmount(address(token), claimableAmount);
-                emit ClaimPoolFees(_msgSender(), address(token), claimableAmount);
+                // IReward(feesVotingReward).notifyRewardAmount(address(token), claimableAmount);
+                // emit ClaimPoolFees(_msgSender(), address(token), claimableAmount);
             }
         }
     }
@@ -237,6 +237,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         rewardPerTokenStored = rewardPerToken();
         uint256 timestamp = block.timestamp;
         uint256 timeUntilNext = VelodromeTimeLibrary.epochNext(timestamp) - timestamp;
+        // uint256 timeUntilNext = 5 minutes - (timestamp % (5 minutes));
 
         if (timestamp >= periodFinish) {
             IERC20(rewardToken).safeTransferFrom(sender, address(this), _amount);
@@ -247,8 +248,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             IERC20(rewardToken).safeTransferFrom(sender, address(this), _amount);
             rewardRate = (_amount + _leftover) / timeUntilNext;
         }
-        rewardRateByEpoch[VelodromeTimeLibrary.epochStart(timestamp)] = rewardRate;
         if (rewardRate == 0) revert ZeroRewardRate();
+        rewardRateByEpoch[VelodromeTimeLibrary.epochStart(timestamp)] = rewardRate;
 
         // Ensure the provided reward amount is not more than the balance in the contract.
         // This keeps the reward rate in the right range, preventing overflows due to
