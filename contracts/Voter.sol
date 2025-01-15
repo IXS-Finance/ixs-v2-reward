@@ -88,6 +88,8 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
 
     IVault public vault;
 
+    uint internal constant DEFAULT_FEEFORVE = 1e3;
+
     constructor(address _forwarder, address _ve, address _factoryRegistry, address _vault) ERC2771Context(_forwarder) {
         forwarder = _forwarder;
         ve = _ve;
@@ -370,7 +372,8 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
             _pool,
             _feeVotingReward,
             rewardToken,
-            true
+            true,
+            DEFAULT_FEEFORVE
         );
 
         gaugeToFees[_gauge] = _feeVotingReward;

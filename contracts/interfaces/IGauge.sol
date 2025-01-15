@@ -9,6 +9,7 @@ interface IGauge {
     error RewardRateTooHigh();
     error ZeroAmount();
     error ZeroRewardRate();
+    error InvalidFeeForVe();
 
     event Deposit(address indexed from, address indexed to, uint256 amount);
     event Withdraw(address indexed from, uint256 amount);
@@ -16,6 +17,10 @@ interface IGauge {
     event ClaimFees(address indexed from, uint256 claimed0, uint256 claimed1);
     event ClaimRewards(address indexed from, uint256 amount);
     event ClaimPoolFees(address indexed sender, address indexed token, uint256 claimedAmount);
+    event UpdateRatio(address indexed token, uint256 feeAmount);
+    event ChangeFeeForVe(uint256 feeForVe);
+    event ClaimTradingFees(address indexed token, address indexed recipient, uint256 claimAmount);
+
 
     /// @notice Address of the pool LP token which is deposited (staked) for rewards
     function stakingToken() external view returns (address);

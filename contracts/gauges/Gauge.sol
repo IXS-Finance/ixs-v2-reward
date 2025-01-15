@@ -14,6 +14,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {VelodromeTimeLibrary} from "../libraries/VelodromeTimeLibrary.sol";
 import {IPoolFees} from "../interfaces/IPoolFees.sol";
 import {IBalancerPool} from "../interfaces/IBalancerPool.sol";
+import {IVault} from "../interfaces/IVault.sol";
 
 /// @title Velodrome V2 Gauge
 /// @author veldorome.finance, @figs999, @pegahcarter
@@ -60,6 +61,13 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     // uint256 public fees1;
     address public poolFees;
 
+    uint256 public feeForVe;
+    uint256 public constant basicPoint = 1e4;
+
+    mapping(address => mapping(address => uint256)) public supplyIndex;
+    mapping(address => mapping(address => uint256)) public claimable;
+    mapping(address => uint256) internal indexRatio;
+
     constructor(
         address _forwarder,
         address _stakingToken,
@@ -67,7 +75,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         address _rewardToken,
         address _voter,
         bool _isPool,
-        address _poolFees
+        address _poolFees,
+        uint256 _feeForVe
     ) ERC2771Context(_forwarder) {
         stakingToken = _stakingToken;
         feesVotingReward = _feesVotingReward;
@@ -76,6 +85,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         isPool = _isPool;
         team = IVotingEscrow(IVoter(voter).ve()).team();
         poolFees = _poolFees;
+        feeForVe = _feeForVe;
     }
 
     // function _claimFees() internal returns (uint256 claimed0, uint256 claimed1) {
@@ -119,9 +129,12 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             IERC20 token = IERC20(tokens[i]);
             uint256 claimableAmount = claimableAmounts[i];
             if (claimableAmount > 0) {
-                token.safeApprove(feesVotingReward, claimableAmount);
-                // IReward(feesVotingReward).notifyRewardAmount(address(token), claimableAmount);
-                // emit ClaimPoolFees(_msgSender(), address(token), claimableAmount);
+                uint _share = (claimableAmount * feeForVe) / basicPoint;
+                uint remain = claimableAmount - _share;
+                token.safeApprove(feesVotingReward, _share);
+                IReward(feesVotingReward).notifyRewardAmount(address(token), _share);
+                _updateRatio(tokens[i], remain);
+                emit ClaimPoolFees(_msgSender(), address(token), _share);
             }
         }
     }
@@ -154,6 +167,23 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             rewards[_account] = 0;
             IERC20(rewardToken).safeTransfer(_account, reward);
             emit ClaimRewards(_account, reward);
+        }
+
+        //claim trading fees
+        address _vault = IPoolFees(poolFees).vault();
+        IERC20[] memory tokens;
+        bytes32 _poolId = IBalancerPool(stakingToken).getPoolId();
+        if(_poolId == bytes32(0)) return;
+        (tokens, , ) = IVault(_vault).getPoolTokens(_poolId);
+        for(uint256 i = 0; i < tokens.length; i++) {
+            _updateSupplyIndex(_account, address(tokens[i]));
+            IERC20 token = tokens[i];
+            uint256 claimableAmount = claimable[msg.sender][address(token)];
+            if (claimableAmount > 0) {
+                claimable[msg.sender][address(token)] = 0;
+                token.safeTransfer(_account, claimableAmount);
+                emit ClaimTradingFees(address(token), _account, claimableAmount);
+            }
         }
     }
 
@@ -261,5 +291,57 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         lastUpdateTime = timestamp;
         periodFinish = timestamp + timeUntilNext;
         emit NotifyReward(sender, _amount);
+    }
+
+    function _updateSupplyIndex(
+        address _recipient,
+        address _token
+    ) internal {
+
+        uint256 _supplied = IERC20(stakingToken).balanceOf(_recipient); // get LP balance of `recipient`
+        uint256 _indexRatio = indexRatio[_token]; // get global index for accumulated fees
+
+        if (_supplied > 0) {
+            uint256 _supplyIndex = supplyIndex[_recipient][_token]; // get last adjusted index for _recipient
+            uint256 _index = _indexRatio; // get global index for accumulated fees
+            supplyIndex[_recipient][_token] = _index; // update user current position to global position
+            uint256 _delta0 = _index - _supplyIndex; // see if there is any difference that need to be accrued
+            if (_delta0 > 0) {
+                uint256 _share = (_supplied * _delta0) / 1e18; // add accrued difference for each supplied token
+                claimable[_recipient][_token] += _share;
+            }
+        } else {
+            supplyIndex[_recipient][_token] = _indexRatio;
+        }
+    }
+
+    /**
+     * @dev update index ratio after each swap
+     * @param _token tokenIn address
+     * @param _feeAmount swapping fee
+     */
+    function _updateRatio(
+        address _token,
+        uint256 _feeAmount
+    ) internal {
+        // Only update on this pool if there is a fee
+        if (_feeAmount == 0) return;
+        uint256 _ratio = (_feeAmount * 1e18) / IERC20(stakingToken).totalSupply(); // 1e18 adjustment is removed during claim
+        if (_ratio > 0) {
+            indexRatio[_token] += _ratio;
+        }
+        emit UpdateRatio(_token, _feeAmount);
+    }
+
+    function getIndexRatio(address _token) external view returns (uint256) {
+        return indexRatio[_token];
+    }
+
+    // function change feeForVe
+    function changeFeeForVe(uint256 _feeForVe) external {
+        if (_msgSender() != team) revert NotTeam();
+        if(_feeForVe > basicPoint) revert InvalidFeeForVe();
+        feeForVe = _feeForVe;
+        emit ChangeFeeForVe(_feeForVe);
     }
 }

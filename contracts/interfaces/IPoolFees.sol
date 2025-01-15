@@ -43,4 +43,9 @@ interface IPoolFees{
         address _token,
         uint256 _feeAmount
     ) external;
+
+    /**
+     * @dev get vault address
+     */
+    function vault() external view returns (address);
 }
