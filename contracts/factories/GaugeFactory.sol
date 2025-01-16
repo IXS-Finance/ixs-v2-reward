@@ -16,10 +16,9 @@ contract GaugeFactory is IGaugeFactory {
         address _pool,
         address _feesVotingReward,
         address _rewardToken,
-        bool isPool,
-        uint256 _feeForVe
+        bool isPool
     ) external returns (address gauge) {
         address _poolFees = address(vault.getPoolFeesCollector());
-        gauge = address(new Gauge(_forwarder, _pool, _feesVotingReward, _rewardToken, msg.sender, isPool, _poolFees, _feeForVe));
+        gauge = address(new Gauge(_forwarder, _pool, _feesVotingReward, _rewardToken, msg.sender, isPool, _poolFees));
     }
 }

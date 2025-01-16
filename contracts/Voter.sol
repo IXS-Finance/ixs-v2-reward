@@ -87,8 +87,8 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     mapping(address => uint256) public claimable;
 
     IVault public vault;
-
-    uint internal constant DEFAULT_FEEFORVE = 1e3;
+    uint internal constant BASIC_POINT = 1e4;
+    uint public feeForVe = 7e3;
 
     constructor(address _forwarder, address _ve, address _factoryRegistry, address _vault) ERC2771Context(_forwarder) {
         forwarder = _forwarder;
@@ -372,8 +372,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
             _pool,
             _feeVotingReward,
             rewardToken,
-            true,
-            DEFAULT_FEEFORVE
+            true
         );
 
         gaugeToFees[_gauge] = _feeVotingReward;
@@ -531,5 +530,11 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         for (uint256 x = 0; x < _length; x++) {
             _distribute(_gauges[x]);
         }
+    }
+
+    function changeFeeForVe(uint _feeForVe) external {
+        if (_msgSender() != governor) revert NotGovernor();
+        if(_feeForVe > BASIC_POINT) revert InvalidFeeForVe();
+        feeForVe = _feeForVe;
     }
 }

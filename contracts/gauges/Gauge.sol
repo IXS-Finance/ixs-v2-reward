@@ -61,8 +61,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     // uint256 public fees1;
     address public poolFees;
 
-    uint256 public feeForVe;
-    uint256 public constant basicPoint = 1e4;
+    // uint256 public feeForVe;
+    uint256 internal constant BASIC_POINT = 1e4;
 
     mapping(address => mapping(address => uint256)) public supplyIndex;
     mapping(address => mapping(address => uint256)) public claimable;
@@ -75,8 +75,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         address _rewardToken,
         address _voter,
         bool _isPool,
-        address _poolFees,
-        uint256 _feeForVe
+        address _poolFees
     ) ERC2771Context(_forwarder) {
         stakingToken = _stakingToken;
         feesVotingReward = _feesVotingReward;
@@ -85,7 +84,6 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         isPool = _isPool;
         team = IVotingEscrow(IVoter(voter).ve()).team();
         poolFees = _poolFees;
-        feeForVe = _feeForVe;
     }
 
     // function _claimFees() internal returns (uint256 claimed0, uint256 claimed1) {
@@ -124,12 +122,12 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         uint256[] memory claimableAmounts;
         bytes32 _poolId = IBalancerPool(stakingToken).getPoolId();
         (tokens, claimableAmounts) = IPoolFees(poolFees).claimPoolTokensFees(_poolId, address(this));
-
+        uint feeForVe = IVoter(voter).feeForVe();
         for(uint256 i = 0; i < tokens.length; i++) {
             IERC20 token = IERC20(tokens[i]);
             uint256 claimableAmount = claimableAmounts[i];
             if (claimableAmount > 0) {
-                uint _share = (claimableAmount * feeForVe) / basicPoint;
+                uint _share = (claimableAmount * feeForVe) / BASIC_POINT;
                 uint remain = claimableAmount - _share;
                 token.safeApprove(feesVotingReward, _share);
                 IReward(feesVotingReward).notifyRewardAmount(address(token), _share);
@@ -337,11 +335,4 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         return indexRatio[_token];
     }
 
-    // function change feeForVe
-    function changeFeeForVe(uint256 _feeForVe) external {
-        if (_msgSender() != team) revert NotTeam();
-        if(_feeForVe > basicPoint) revert InvalidFeeForVe();
-        feeForVe = _feeForVe;
-        emit ChangeFeeForVe(_feeForVe);
-    }
 }

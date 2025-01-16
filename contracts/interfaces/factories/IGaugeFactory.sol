@@ -7,7 +7,6 @@ interface IGaugeFactory {
         address _pool,
         address _feesVotingReward,
         address _ve,
-        bool isPool,
-        uint256 _feeForVe
+        bool isPool
     ) external returns (address);
 }

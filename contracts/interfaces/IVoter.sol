@@ -26,6 +26,7 @@ interface IVoter {
     error UnequalLengths();
     error ZeroBalance();
     error ZeroAddress();
+    error InvalidFeeForVe();
 
     event GaugeCreated(
         address indexed poolFactory,
@@ -265,4 +266,11 @@ interface IVoter {
     /// @dev Update claims to emissions for single gauge
     /// @param _gauge .
     function updateFor(address _gauge) external;
+
+    /// @notice Set new fee rate
+    /// @param _feeForVe .
+    function changeFeeForVe(uint256 _feeForVe) external;
+
+    function feeForVe() external view returns (uint256);
+    
 }
