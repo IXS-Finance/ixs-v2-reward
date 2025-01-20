@@ -35,7 +35,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IGauge
     bool public immutable isPool;
 
-    uint256 internal constant DURATION = 7 days; // rewards are released over 7 days
+    // uint256 internal constant DURATION = 7 days; // rewards are released over 7 days
+    uint256 internal constant DURATION = 14 days; // rewards are released over 7 days
     uint256 internal constant PRECISION = 10 ** 18;
 
     /// @inheritdoc IGauge
@@ -67,6 +68,16 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     mapping(address => mapping(address => uint256)) public supplyIndex;
     mapping(address => mapping(address => uint256)) public claimable;
     mapping(address => uint256) internal indexRatio;
+
+    struct VestingInfo {
+        uint256 totalVested; // Total reward amount vested
+        uint256 claimed;     // Amount already claimed
+        uint256 start;       // Vesting start time
+    }
+
+    uint public constant end = 1768853457; // 20 Jan 2026
+    mapping(address => VestingInfo) public vestingInfo;
+
 
     constructor(
         address _forwarder,
@@ -160,12 +171,23 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
 
         _updateRewards(_account);
 
-        uint256 reward = rewards[_account];
-        if (reward > 0) {
-            rewards[_account] = 0;
-            IERC20(rewardToken).safeTransfer(_account, reward);
-            emit ClaimRewards(_account, reward);
-        }
+        // uint256 reward = rewards[_account];
+        // if (reward > 0) {
+        //     rewards[_account] = 0;
+        //     IERC20(rewardToken).safeTransfer(_account, reward);
+        //     emit ClaimRewards(_account, reward);
+        // }
+
+        VestingInfo storage info = vestingInfo[msg.sender];
+        uint256 currentTime = block.timestamp;
+
+        // Calculate the vested amount available to claim
+        uint256 vestedAmount = _calculateVestedAmount(info, currentTime);
+        require(vestedAmount > 0, "No vested rewards available");
+
+        // Update vesting info and transfer rewards
+        info.claimed += vestedAmount;
+        IERC20(rewardToken).safeTransfer(msg.sender, vestedAmount);
 
         //claim trading fees
         address _vault = IPoolFees(poolFees).vault();
@@ -183,6 +205,15 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
                 emit ClaimTradingFees(address(token), _account, claimableAmount);
             }
         }
+    }
+
+    function _calculateVestedAmount(VestingInfo storage info, uint256 currentTime) internal view returns (uint256) {
+        if (currentTime < info.start) return 0; // Vesting hasn't started yet
+        if (currentTime >= end) return info.totalVested; // Fully vested
+        if(currentTime - info.start < 1 days) return 0; // No time passed since vesting started
+
+        uint256 vestedSoFar = (info.totalVested * (currentTime - info.start)) / (end - info.start);
+        return vestedSoFar - info.claimed; // Return unclaimed vested amount
     }
 
     /// @inheritdoc IGauge
@@ -234,6 +265,15 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         rewardPerTokenStored = rewardPerToken();
         lastUpdateTime = lastTimeRewardApplicable();
         rewards[_account] = earned(_account);
+        if (reward > 0) {
+            VestingInfo storage info = vestingInfo[_account];
+
+            // Add new rewards to vesting schedule
+            info.totalVested += reward;
+            info.start = block.timestamp;
+
+            rewards[_account] = 0; // Reset immediate rewards
+        }
         userRewardPerTokenPaid[_account] = rewardPerTokenStored;
     }
 
