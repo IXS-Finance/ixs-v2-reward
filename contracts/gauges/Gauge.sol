@@ -170,24 +170,29 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         if (sender != _account && sender != voter) revert NotAuthorized();
 
         _updateRewards(_account);
+        uint256 reward = rewards[_account];
+        if (reward > 0) {
+            VestingInfo memory info = vestingInfo[_account];
 
-        // uint256 reward = rewards[_account];
-        // if (reward > 0) {
-        //     rewards[_account] = 0;
-        //     IERC20(rewardToken).safeTransfer(_account, reward);
-        //     emit ClaimRewards(_account, reward);
-        // }
+            // Add new rewards to vesting schedule
+            info.totalVested += reward;
 
-        VestingInfo storage info = vestingInfo[msg.sender];
-        uint256 currentTime = block.timestamp;
+            rewards[_account] = 0; // Reset immediate rewards
+        
+            // VestingInfo memory info = vestingInfo[msg.sender];
+            // uint256 currentTime = block.timestamp;
 
-        // Calculate the vested amount available to claim
-        uint256 vestedAmount = _calculateVestedAmount(info, currentTime);
-        require(vestedAmount > 0, "No vested rewards available");
+            // Calculate the vested amount available to claim
+            uint256 vestedAmount = _calculateVestedAmount(info);
+            require(vestedAmount > 0, "No vested rewards available");
 
-        // Update vesting info and transfer rewards
-        info.claimed += vestedAmount;
-        IERC20(rewardToken).safeTransfer(msg.sender, vestedAmount);
+            // Update vesting info and transfer rewards
+            info.claimed += vestedAmount;
+            IERC20(rewardToken).safeTransfer(msg.sender, vestedAmount);
+
+            info.start = block.timestamp;
+            vestingInfo[_account] = info;
+        }
 
         //claim trading fees
         address _vault = IPoolFees(poolFees).vault();
@@ -207,13 +212,18 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         }
     }
 
-    function _calculateVestedAmount(VestingInfo storage info, uint256 currentTime) internal view returns (uint256) {
+    function _calculateVestedAmount(VestingInfo memory info) internal view returns (uint256) {
+        uint256 currentTime = block.timestamp;
         if (currentTime < info.start) return 0; // Vesting hasn't started yet
         if (currentTime >= end) return info.totalVested; // Fully vested
-        if(currentTime - info.start < 1 days) return 0; // No time passed since vesting started
+        if(info.claimed == 0){ // No claim yet
+            uint256 vestedSoFar = info.totalVested / 365;
+            return vestedSoFar; // Return unclaimed vested amount
+        }
+        else if (currentTime - info.start < 1 days) return 0; // No time passed since vesting started`
 
         uint256 vestedSoFar = (info.totalVested * (currentTime - info.start)) / (end - info.start);
-        return vestedSoFar - info.claimed; // Return unclaimed vested amount
+        return vestedSoFar - info.claimed; // Return unclaimed vested amount    
     }
 
     /// @inheritdoc IGauge
@@ -265,15 +275,6 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         rewardPerTokenStored = rewardPerToken();
         lastUpdateTime = lastTimeRewardApplicable();
         rewards[_account] = earned(_account);
-        if (reward > 0) {
-            VestingInfo storage info = vestingInfo[_account];
-
-            // Add new rewards to vesting schedule
-            info.totalVested += reward;
-            info.start = block.timestamp;
-
-            rewards[_account] = 0; // Reset immediate rewards
-        }
         userRewardPerTokenPaid[_account] = rewardPerTokenStored;
     }
 
@@ -375,4 +376,19 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         return indexRatio[_token];
     }
 
+    function getClaimableVestAmount(address _account) external view returns (uint256) {
+        // _updateRewards(_account);
+        uint256 reward = earned(_account);
+        if (reward > 0) {
+            VestingInfo memory info = vestingInfo[_account];
+            // Add new rewards to vesting schedule
+            info.totalVested += reward;
+            info.start = block.timestamp;
+
+            // Calculate the vested amount available to claim
+            uint256 vestedAmount = _calculateVestedAmount(info);
+
+            return vestedAmount;
+        }
+    }
 }
