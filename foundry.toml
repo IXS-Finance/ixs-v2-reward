@@ -21,3 +21,4 @@ fail_on_revert = false
 
 [profile.lite]
 optimizer = false
+
