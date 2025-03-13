@@ -60,6 +60,7 @@ interface IVoter {
     event DistributeReward(address indexed sender, address indexed gauge, uint256 amount);
     event WhitelistToken(address indexed whitelister, address indexed token, bool indexed _bool);
     event WhitelistNFT(address indexed whitelister, uint256 indexed tokenId, bool indexed _bool);
+    event MinterChanged(address indexed minter);
 
     /// @notice Store trusted forwarder address to pass into factories
     function forwarder() external view returns (address);
