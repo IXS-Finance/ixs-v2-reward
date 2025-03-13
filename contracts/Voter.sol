@@ -537,4 +537,10 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         if(_feeForVe > BASIC_POINT) revert InvalidFeeForVe();
         feeForVe = _feeForVe;
     }
+
+    function setMinter(address _minter) external {
+        if (_msgSender() != governor) revert NotGovernor();
+        minter = _minter;
+        emit MinterChanged(_minter);
+    }
 }
