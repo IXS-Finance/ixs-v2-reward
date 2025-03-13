@@ -72,13 +72,13 @@ abstract contract Base is Script, Test {
     /// @dev Global address to set
     address public allowedManager;
 
-    address public vault;// = 0xF40AC6566b5590aDA95c7a0e422b11ee2740ac0a;
+    address public vault = 0x05E7A5e0eBd927F814C80eFAf0213667A5b288C0;
     address public poolFees;
 
     function _coreSetup() public {
         // vault = vault == address(0) ? address(new MockVault()) : vault;
-        poolFees = address(new MockPoolFees());
-        vault = address(new MockVault(poolFees));
+        // poolFees = address(new MockPoolFees());
+        // vault = address(new MockVault(poolFees));
         deployFactories();
 
         forwarder = new Forwarder();
@@ -107,7 +107,7 @@ abstract contract Base is Script, Test {
         // minter = new Minter(address(voter), address(escrow), address(distributor));
         minter = new Minter(address(voter), address(escrow));
         distributor.setMinter(address(minter));
-        VELO.setMinter(address(minter));
+        // VELO.setMinter(address(minter));
 
         // /// @dev tokens are already set in the respective setupBefore()
         voter.initialize(tokens, address(minter));
