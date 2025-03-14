@@ -2,6 +2,7 @@ pragma solidity 0.8.19;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract MockPoolFees {
     address[] public tokens;
+    address public vault;
     // constructor() ERC20("test", "TST") {
     //     // _decimals = uint8(18);
     // }
@@ -18,6 +19,11 @@ contract MockPoolFees {
     function setTokens(address[] memory _tokens) external {
         // do nothing
         tokens = _tokens;
+    }
+
+    function setVault(address _vault) external {
+        // do nothing
+        vault = _vault;
     }
    
 }
