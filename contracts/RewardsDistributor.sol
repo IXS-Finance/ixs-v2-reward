@@ -11,7 +11,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {console} from "forge-std/console.sol";
 
 
-/// @title Minter
+/// @title RewardsDistributor
 /// @author velodrome.finance, @figs999, @pegahcarter
 /// @notice Controls minting of emissions and rebases for Velodrome
 contract RewardsDistributor is IRewardsDistributor {
