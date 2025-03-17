@@ -3,194 +3,122 @@ pragma solidity 0.8.19;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IRewardsDistributor} from "./interfaces/IRewardsDistributor.sol";
+import {IVelo} from "./interfaces/IVelo.sol";
+import {IVoter} from "./interfaces/IVoter.sol";
 import {IVotingEscrow} from "./interfaces/IVotingEscrow.sol";
-import {IMinter} from "./interfaces/IMinter.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IEpochGovernor} from "./interfaces/IEpochGovernor.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {console} from "forge-std/console.sol";
 
-/*
- * @title Curve Fee Distribution modified for ve(3,3) emissions
- * @author Curve Finance, andrecronje
- * @author velodrome.finance, @figs999, @pegahcarter
- * @license MIT
- */
+
+/// @title Minter
+/// @author velodrome.finance, @figs999, @pegahcarter
+/// @notice Controls minting of emissions and rebases for Velodrome
 contract RewardsDistributor is IRewardsDistributor {
-    using SafeERC20 for IERC20;
-    /// @inheritdoc IRewardsDistributor
-    uint256 public constant WEEK = 7 * 86400;
+    using SafeERC20 for IVelo;
 
-    /// @inheritdoc IRewardsDistributor
-    uint256 public startTime;
-    /// @inheritdoc IRewardsDistributor
-    mapping(uint256 => uint256) public timeCursorOf;
+    IVelo public immutable ixs;
 
-    /// @inheritdoc IRewardsDistributor
-    uint256 public lastTokenTime;
-    uint256[1000000000000000] public tokensPerWeek;
+    IVoter public immutable voter;
 
-    /// @inheritdoc IRewardsDistributor
+    uint256 public constant WEEK = 1 weeks;
+
     IVotingEscrow public immutable ve;
-    /// @inheritdoc IRewardsDistributor
-    address public token;
-    /// @inheritdoc IRewardsDistributor
-    address public minter;
-    /// @inheritdoc IRewardsDistributor
-    uint256 public tokenLastBalance;
 
-    constructor(address _ve) {
-        uint256 _t = (block.timestamp / WEEK) * WEEK;
-        startTime = _t;
-        lastTokenTime = _t;
+    // uint256 public constant WEEKLY_DECAY = 9_900;
+
+    // uint256 public constant MAXIMUM_TAIL_RATE = 100;
+
+    // uint256 public constant MINIMUM_TAIL_RATE = 1;
+
+    // uint256 public constant MAX_BPS = 10_000;
+
+    // uint256 public constant NUDGE = 1;
+
+    // uint256 public constant TAIL_START = 6_000_000 * 1e18;
+
+    // uint256 public constant MAXIMUM_TEAM_RATE = 500;
+
+    // uint256 public teamRate = 500; // team emissions start at 5%
+
+    // uint256 public tailEmissionRate = 30;
+
+    uint256 public weeklyRewards = 15_000_000 * 1e18;
+
+    uint256 public activePeriod;
+
+    // mapping(uint256 => bool) public proposals;
+
+    address public team;
+
+    address public pendingTeam;
+
+    constructor(
+        address _voter, // the voting & distribution system
+        address _ve // the ve(3,3) system that will be locked into
+    ) {
+        ixs = IVelo(IVotingEscrow(_ve).token());
+        voter = IVoter(_voter);
         ve = IVotingEscrow(_ve);
-        address _token = ve.token();
-        token = _token;
-        minter = msg.sender;
-        IERC20(_token).safeApprove(_ve, type(uint256).max);
+        team = msg.sender;
+        activePeriod = ((block.timestamp) / WEEK) * WEEK; // allow emissions this coming epoch
     }
 
-    function _checkpointToken() internal {
-        uint256 tokenBalance = IERC20(token).balanceOf(address(this));
-        uint256 toDistribute = tokenBalance - tokenLastBalance;
-        tokenLastBalance = tokenBalance;
 
-        uint256 t = lastTokenTime;
-        uint256 sinceLast = block.timestamp - t;
-        lastTokenTime = block.timestamp;
-        uint256 thisWeek = (t / WEEK) * WEEK;
-        uint256 nextWeek = 0;
-        uint256 timestamp = block.timestamp;
-
-        for (uint256 i = 0; i < 20; i++) {
-            nextWeek = thisWeek + WEEK;
-            if (timestamp < nextWeek) {
-                if (sinceLast == 0 && timestamp == t) {
-                    tokensPerWeek[thisWeek] += toDistribute;
-                } else {
-                    tokensPerWeek[thisWeek] += (toDistribute * (timestamp - t)) / sinceLast;
-                }
-                break;
-            } else {
-                if (sinceLast == 0 && nextWeek == t) {
-                    tokensPerWeek[thisWeek] += toDistribute;
-                } else {
-                    tokensPerWeek[thisWeek] += (toDistribute * (nextWeek - t)) / sinceLast;
-                }
-            }
-            t = nextWeek;
-            thisWeek = nextWeek;
-        }
-        emit CheckpointToken(timestamp, toDistribute);
+    function setTeam(address _team) external {
+        if (msg.sender != team) revert NotTeam();
+        if (_team == address(0)) revert ZeroAddress();
+        pendingTeam = _team;
     }
 
-    /// @inheritdoc IRewardsDistributor
-    function checkpointToken() external {
-        if (msg.sender != minter) revert NotMinter();
-        _checkpointToken();
+
+    function acceptTeam() external {
+        if (msg.sender != pendingTeam) revert NotPendingTeam();
+        team = pendingTeam;
+        delete pendingTeam;
+        emit AcceptTeam(team);
     }
 
-    function _claim(uint256 _tokenId, uint256 _lastTokenTime) internal returns (uint256) {
-        (uint256 toDistribute, uint256 epochStart, uint256 weekCursor) = _claimable(_tokenId, _lastTokenTime);
-        timeCursorOf[_tokenId] = weekCursor;
-        if (toDistribute == 0) return 0;
+    // function nudge() external {
+    //     address _epochGovernor = voter.epochGovernor();
+    //     if (msg.sender != _epochGovernor) revert NotEpochGovernor();
+    //     IEpochGovernor.ProposalState _state = IEpochGovernor(_epochGovernor).result();
+    //     if (weekly >= TAIL_START) revert TailEmissionsInactive();
+    //     uint256 _period = activePeriod;
+    //     if (proposals[_period]) revert AlreadyNudged();
+    //     uint256 _newRate = tailEmissionRate;
+    //     uint256 _oldRate = _newRate;
 
-        emit Claimed(_tokenId, epochStart, weekCursor, toDistribute);
-        return toDistribute;
-    }
+    //     if (_state != IEpochGovernor.ProposalState.Expired) {
+    //         if (_state == IEpochGovernor.ProposalState.Succeeded) {
+    //             _newRate = _oldRate + NUDGE > MAXIMUM_TAIL_RATE ? MAXIMUM_TAIL_RATE : _oldRate + NUDGE;
+    //         } else {
+    //             _newRate = _oldRate - NUDGE < MINIMUM_TAIL_RATE ? MINIMUM_TAIL_RATE : _oldRate - NUDGE;
+    //         }
+    //         tailEmissionRate = _newRate;
+    //     }
+    //     proposals[_period] = true;
+    //     emit Nudge(_period, _oldRate, _newRate);
+    // }
 
-    function _claimable(
-        uint256 _tokenId,
-        uint256 _lastTokenTime
-    ) internal view returns (uint256 toDistribute, uint256 weekCursorStart, uint256 weekCursor) {
-        uint256 _startTime = startTime;
-        weekCursor = timeCursorOf[_tokenId];
-        weekCursorStart = weekCursor;
 
-        // case where token does not exist
-        uint256 maxUserEpoch = ve.userPointEpoch(_tokenId);
-        if (maxUserEpoch == 0) return (0, weekCursorStart, weekCursor);
+    function updatePeriod() external returns (uint256 _period) {
+        _period = activePeriod;
+        if (block.timestamp >= _period + WEEK) {
+            _period = (block.timestamp / WEEK) * WEEK;
+            activePeriod = _period;
+            uint256 _weeklyRewards = weeklyRewards;
 
-        // case where token exists but has never been claimed
-        if (weekCursor == 0) {
-            IVotingEscrow.UserPoint memory userPoint = ve.userPointHistory(_tokenId, 1);
-            weekCursor = (userPoint.ts / WEEK) * WEEK;
-            weekCursorStart = weekCursor;
-        }
-        if (weekCursor >= _lastTokenTime) return (0, weekCursorStart, weekCursor);
-        if (weekCursor < _startTime) weekCursor = _startTime;
+            ixs.approve(address(voter), _weeklyRewards);
+            voter.notifyRewardAmount(_weeklyRewards);
 
-        for (uint256 i = 0; i < 50; i++) {
-            if (weekCursor >= _lastTokenTime) break;
-
-            uint256 balance = ve.balanceOfNFTAt(_tokenId, weekCursor + WEEK - 1);
-            uint256 supply = ve.totalSupplyAt(weekCursor + WEEK - 1);
-            supply = supply == 0 ? 1 : supply;
-            toDistribute += (balance * tokensPerWeek[weekCursor]) / supply;
-            weekCursor += WEEK;
+            emit Mint(msg.sender, _weeklyRewards);
         }
     }
 
-    /// @inheritdoc IRewardsDistributor
-    function claimable(uint256 _tokenId) external view returns (uint256 claimable_) {
-        uint256 _lastTokenTime = (lastTokenTime / WEEK) * WEEK;
-        (claimable_, , ) = _claimable(_tokenId, _lastTokenTime);
-    }
-
-    /// @inheritdoc IRewardsDistributor
-    function claim(uint256 _tokenId) external returns (uint256) {
-        if (IMinter(minter).activePeriod() < ((block.timestamp / WEEK) * WEEK)) revert UpdatePeriod();
-        if (ve.escrowType(_tokenId) == IVotingEscrow.EscrowType.LOCKED) revert NotManagedOrNormalNFT();
-        uint256 _timestamp = block.timestamp;
-        uint256 _lastTokenTime = lastTokenTime;
-        _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
-        uint256 amount = _claim(_tokenId, _lastTokenTime);
-        if (amount != 0) {
-            IVotingEscrow.LockedBalance memory _locked = ve.locked(_tokenId);
-            if (_timestamp >= _locked.end && !_locked.isPermanent) {
-                address _owner = ve.ownerOf(_tokenId);
-                IERC20(token).safeTransfer(_owner, amount);
-            } else {
-                ve.depositFor(_tokenId, amount);
-            }
-            tokenLastBalance -= amount;
-        }
-        return amount;
-    }
-
-    /// @inheritdoc IRewardsDistributor
-    function claimMany(uint256[] calldata _tokenIds) external returns (bool) {
-        if (IMinter(minter).activePeriod() < ((block.timestamp / WEEK) * WEEK)) revert UpdatePeriod();
-        uint256 _timestamp = block.timestamp;
-        uint256 _lastTokenTime = lastTokenTime;
-        _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
-        uint256 total = 0;
-        uint256 _length = _tokenIds.length;
-
-        for (uint256 i = 0; i < _length; i++) {
-            uint256 _tokenId = _tokenIds[i];
-            if (ve.escrowType(_tokenId) == IVotingEscrow.EscrowType.LOCKED) revert NotManagedOrNormalNFT();
-            if (_tokenId == 0) break;
-            uint256 amount = _claim(_tokenId, _lastTokenTime);
-            if (amount != 0) {
-                IVotingEscrow.LockedBalance memory _locked = ve.locked(_tokenId);
-                if (_timestamp >= _locked.end && !_locked.isPermanent) {
-                    address _owner = ve.ownerOf(_tokenId);
-                    IERC20(token).safeTransfer(_owner, amount);
-                } else {
-                    ve.depositFor(_tokenId, amount);
-                }
-                total += amount;
-            }
-        }
-        if (total != 0) {
-            tokenLastBalance -= total;
-        }
-
-        return true;
-    }
-
-    /// @inheritdoc IRewardsDistributor
-    function setMinter(address _minter) external {
-        if (msg.sender != minter) revert NotMinter();
-        minter = _minter;
+    function changeWeekly(uint256 _newWeekly) external {
+        if (msg.sender != team) revert NotTeam();
+        emit ChangeWeekly(weeklyRewards, _newWeekly);
+        weeklyRewards = _newWeekly;
     }
 }

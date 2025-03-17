@@ -14,7 +14,7 @@ import {ERC2771Context} from "@openzeppelin/contracts/metatx/ERC2771Context.sol"
 import {Timers} from "@openzeppelin/contracts/utils/Timers.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IGovernor} from "./IGovernor.sol";
-import {IMinter} from "../interfaces/IMinter.sol";
+import {IRewardsDistributor} from "../interfaces/IRewardsDistributor.sol";
 import {VelodromeTimeLibrary} from "../libraries/VelodromeTimeLibrary.sol";
 import {IVoter} from "contracts/interfaces/IVoter.sol";
 import {IVotingEscrow} from "contracts/interfaces/IVotingEscrow.sol";
@@ -289,7 +289,7 @@ abstract contract GovernorSimple is ERC2771Context, ERC165, EIP712, IGovernor, I
         require(targets.length == 1, "GovernorSimple: only one target allowed");
         require(address(targets[0]) == minter, "GovernorSimple: only minter allowed");
         require(calldatas.length == 1, "GovernorSimple: only one calldata allowed");
-        require(bytes4(calldatas[0]) == IMinter.nudge.selector, "GovernorSimple: only nudge allowed");
+        // require(bytes4(calldatas[0]) == IRewardsDistributor.nudge.selector, "GovernorSimple: only nudge allowed");
 
         bytes32 epochStart = bytes32(VelodromeTimeLibrary.epochStart(block.timestamp) + (1 weeks));
         uint256 proposalId = hashProposal(targets, values, calldatas, epochStart);
