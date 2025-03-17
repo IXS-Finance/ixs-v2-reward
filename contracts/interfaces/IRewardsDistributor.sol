@@ -9,17 +9,17 @@ import {IRewardsDistributor} from "./IRewardsDistributor.sol";
 interface IRewardsDistributor {
     event Mint(address indexed _sender, uint256 _weekly);
     event AcceptTeam(address indexed _newTeam);
-    event ChangeWeekly(uint256 oldWeekly, uint256 newWeekly);
+    event ChangeEpochRewards(uint256 oldRewards, uint256 newRewards);
 
     error NotTeam();
     error ZeroAddress();
     error NotPendingTeam();
 
     /// @notice Duration of epoch in seconds
-    function WEEK() external view returns (uint256);
+    function EPOCH_DURATION() external view returns (uint256);
 
     /// @notice Starting weekly emission of 15M VELO (VELO has 18 decimals)
-    function weeklyRewards() external view returns (uint256);
+    function epochRewards() external view returns (uint256);
 
     /// @notice Timestamp of start of epoch that updatePeriod was last called in
     function activePeriod() external returns (uint256);
@@ -42,7 +42,7 @@ interface IRewardsDistributor {
     /// @return _period Start of current epoch.
     function updatePeriod() external returns (uint256 _period);
 
-    /// @notice change weekly emission
-    function changeWeekly(uint256 _newWeekly) external;
+    /// @notice change epoch reward emission
+    function changeEpochRewards(uint256 _newEpochRewards) external;
 
 }

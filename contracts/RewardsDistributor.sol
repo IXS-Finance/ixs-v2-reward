@@ -21,11 +21,11 @@ contract RewardsDistributor is IRewardsDistributor {
 
     IVoter public immutable voter;
 
-    uint256 public constant WEEK = 1 weeks;
+    uint256 public constant EPOCH_DURATION = 1 weeks;
 
     IVotingEscrow public immutable ve;
 
-    uint256 public weeklyRewards = 15_000_000 * 1e18;
+    uint256 public epochRewards = 15_000_000 * 1e18;
 
     uint256 public activePeriod;
 
@@ -41,7 +41,7 @@ contract RewardsDistributor is IRewardsDistributor {
         voter = IVoter(_voter);
         ve = IVotingEscrow(_ve);
         team = msg.sender;
-        activePeriod = ((block.timestamp) / WEEK) * WEEK; // allow emissions this coming epoch
+        activePeriod = ((block.timestamp) / EPOCH_DURATION) * EPOCH_DURATION; // allow emissions this coming epoch
     }
 
 
@@ -60,21 +60,21 @@ contract RewardsDistributor is IRewardsDistributor {
 
     function updatePeriod() external returns (uint256 _period) {
         _period = activePeriod;
-        if (block.timestamp >= _period + WEEK) {
-            _period = (block.timestamp / WEEK) * WEEK;
+        if (block.timestamp >= _period + EPOCH_DURATION) {
+            _period = (block.timestamp / EPOCH_DURATION) * EPOCH_DURATION;
             activePeriod = _period;
-            uint256 _weeklyRewards = weeklyRewards;
+            uint256 _epochRewards = epochRewards;
 
-            ixs.approve(address(voter), _weeklyRewards);
-            voter.notifyRewardAmount(_weeklyRewards);
+            ixs.approve(address(voter), _epochRewards);
+            voter.notifyRewardAmount(_epochRewards);
 
-            emit Mint(msg.sender, _weeklyRewards);
+            emit Mint(msg.sender, _epochRewards);
         }
     }
 
-    function changeWeekly(uint256 _newWeekly) external {
+    function changeEpochRewards(uint256 _newEpochRewards) external {
         if (msg.sender != team) revert NotTeam();
-        emit ChangeWeekly(weeklyRewards, _newWeekly);
-        weeklyRewards = _newWeekly;
+        emit ChangeEpochRewards(epochRewards, _newEpochRewards);
+        epochRewards = _newEpochRewards;
     }
 }
