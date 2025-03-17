@@ -27,6 +27,7 @@ interface IVoter {
     error ZeroBalance();
     error ZeroAddress();
     error InvalidFeeForVe();
+    error InvalidPeriod();
 
     event GaugeCreated(
         address indexed poolFactory,

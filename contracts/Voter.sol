@@ -548,6 +548,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
 
     function setPeriod(uint256 _period) external {
         if (_msgSender() != governor) revert NotGovernor();
+        if(_period < DURATION) revert InvalidPeriod();
         period = _period;
         emit PeriodChanged(_period);
     }
