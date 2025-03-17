@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IVelo} from "./IVelo.sol";
+import {IIxs} from "./IIxs.sol";
 import {IVoter} from "./IVoter.sol";
 import {IVotingEscrow} from "./IVotingEscrow.sol";
 import {IRewardsDistributor} from "./IRewardsDistributor.sol";

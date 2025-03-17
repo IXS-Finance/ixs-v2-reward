@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IRewardsDistributor} from "./interfaces/IRewardsDistributor.sol";
-import {IVelo} from "./interfaces/IVelo.sol";
+import {IIxs} from "./interfaces/IIxs.sol";
 import {IVoter} from "./interfaces/IVoter.sol";
 import {IVotingEscrow} from "./interfaces/IVotingEscrow.sol";
 import {IEpochGovernor} from "./interfaces/IEpochGovernor.sol";
@@ -15,9 +15,9 @@ import {console} from "forge-std/console.sol";
 /// @author velodrome.finance, @figs999, @pegahcarter
 /// @notice Controls minting of emissions and rebases for Velodrome
 contract RewardsDistributor is IRewardsDistributor {
-    using SafeERC20 for IVelo;
+    using SafeERC20 for IIxs;
 
-    IVelo public immutable ixs;
+    IIxs public immutable ixs;
 
     IVoter public immutable voter;
 
@@ -37,7 +37,7 @@ contract RewardsDistributor is IRewardsDistributor {
         address _voter, // the voting & distribution system
         address _ve // the ve(3,3) system that will be locked into
     ) {
-        ixs = IVelo(IVotingEscrow(_ve).token());
+        ixs = IIxs(IVotingEscrow(_ve).token());
         voter = IVoter(_voter);
         ve = IVotingEscrow(_ve);
         team = msg.sender;
