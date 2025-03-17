@@ -31,4 +31,17 @@ library VelodromeTimeLibrary {
             return timestamp - (timestamp % WEEK) + WEEK - 1 hours;
         }
     }
+
+    function periodStart(uint256 timestamp, uint256 period) internal pure returns (uint256) {
+        unchecked {
+            return timestamp - (timestamp % period);
+        }
+    }
+
+    /// @dev Returns start of next epoch / end of current epoch
+    function periodNext(uint256 timestamp, uint256 period) internal pure returns (uint256) {
+        unchecked {
+            return timestamp - (timestamp % period) + period;
+        }
+    }
 }
