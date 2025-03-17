@@ -264,8 +264,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     function _notifyRewardAmount(address sender, uint256 _amount) internal {
         rewardPerTokenStored = rewardPerToken();
         uint256 timestamp = block.timestamp;
-        uint256 timeUntilNext = VelodromeTimeLibrary.epochNext(timestamp) - timestamp;
-        // uint256 timeUntilNext = 5 minutes - (timestamp % (5 minutes));
+        uint256 currentPeriod = IVoter(voter).period();
+        uint256 timeUntilNext = VelodromeTimeLibrary.periodNext(timestamp, currentPeriod) - timestamp;
 
         if (timestamp >= periodFinish) {
             IERC20(rewardToken).safeTransferFrom(sender, address(this), _amount);
@@ -277,7 +277,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             rewardRate = (_amount + _leftover) / timeUntilNext;
         }
         if (rewardRate == 0) revert ZeroRewardRate();
-        rewardRateByEpoch[VelodromeTimeLibrary.epochStart(timestamp)] = rewardRate;
+        rewardRateByEpoch[VelodromeTimeLibrary.periodStart(timestamp, currentPeriod)] = rewardRate;
 
         // Ensure the provided reward amount is not more than the balance in the contract.
         // This keeps the reward rate in the right range, preventing overflows due to

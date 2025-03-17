@@ -27,6 +27,7 @@ interface IVoter {
     error ZeroBalance();
     error ZeroAddress();
     error InvalidFeeForVe();
+    error InvalidPeriod();
 
     event GaugeCreated(
         address indexed poolFactory,
@@ -61,6 +62,7 @@ interface IVoter {
     event WhitelistToken(address indexed whitelister, address indexed token, bool indexed _bool);
     event WhitelistNFT(address indexed whitelister, uint256 indexed tokenId, bool indexed _bool);
     event MinterChanged(address indexed minter);
+    event PeriodChanged(uint256 indexed period);
 
     /// @notice Store trusted forwarder address to pass into factories
     function forwarder() external view returns (address);
@@ -274,4 +276,5 @@ interface IVoter {
 
     function feeForVe() external view returns (uint256);
     
+    function period() external view returns (uint256);
 }

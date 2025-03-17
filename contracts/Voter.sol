@@ -5,7 +5,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IVotingRewardsFactory} from "./interfaces/factories/IVotingRewardsFactory.sol";
 import {IGauge} from "./interfaces/IGauge.sol";
 import {IGaugeFactory} from "./interfaces/factories/IGaugeFactory.sol";
-import {IMinter} from "./interfaces/IMinter.sol";
+import {IRewardsDistributor} from "./interfaces/IRewardsDistributor.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IPoolFactory} from "./interfaces/factories/IPoolFactory.sol";
 import {IReward} from "./interfaces/IReward.sol";
@@ -89,6 +89,8 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     IVault public vault;
     uint internal constant BASIC_POINT = 1e4;
     uint public feeForVe = 7e3;
+    uint256 public period;
+
 
     constructor(address _forwarder, address _ve, address _factoryRegistry, address _vault) ERC2771Context(_forwarder) {
         forwarder = _forwarder;
@@ -517,7 +519,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
 
     /// @inheritdoc IVoter
     function distribute(uint256 _start, uint256 _finish) external nonReentrant {
-        IMinter(minter).updatePeriod();
+        IRewardsDistributor(minter).updatePeriod();
         for (uint256 x = _start; x < _finish; x++) {
             _distribute(gauges[pools[x]]);
         }
@@ -525,7 +527,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
 
     /// @inheritdoc IVoter
     function distribute(address[] memory _gauges) external nonReentrant {
-        IMinter(minter).updatePeriod();
+        IRewardsDistributor(minter).updatePeriod();
         uint256 _length = _gauges.length;
         for (uint256 x = 0; x < _length; x++) {
             _distribute(_gauges[x]);
@@ -542,5 +544,12 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         if (_msgSender() != governor) revert NotGovernor();
         minter = _minter;
         emit MinterChanged(_minter);
+    }
+
+    function setPeriod(uint256 _period) external {
+        if (_msgSender() != governor) revert NotGovernor();
+        if(_period < DURATION) revert InvalidPeriod();
+        period = _period;
+        emit PeriodChanged(_period);
     }
 }
