@@ -25,29 +25,9 @@ contract RewardsDistributor is IRewardsDistributor {
 
     IVotingEscrow public immutable ve;
 
-    // uint256 public constant WEEKLY_DECAY = 9_900;
-
-    // uint256 public constant MAXIMUM_TAIL_RATE = 100;
-
-    // uint256 public constant MINIMUM_TAIL_RATE = 1;
-
-    // uint256 public constant MAX_BPS = 10_000;
-
-    // uint256 public constant NUDGE = 1;
-
-    // uint256 public constant TAIL_START = 6_000_000 * 1e18;
-
-    // uint256 public constant MAXIMUM_TEAM_RATE = 500;
-
-    // uint256 public teamRate = 500; // team emissions start at 5%
-
-    // uint256 public tailEmissionRate = 30;
-
     uint256 public weeklyRewards = 15_000_000 * 1e18;
 
     uint256 public activePeriod;
-
-    // mapping(uint256 => bool) public proposals;
 
     address public team;
 
@@ -71,36 +51,12 @@ contract RewardsDistributor is IRewardsDistributor {
         pendingTeam = _team;
     }
 
-
     function acceptTeam() external {
         if (msg.sender != pendingTeam) revert NotPendingTeam();
         team = pendingTeam;
         delete pendingTeam;
         emit AcceptTeam(team);
     }
-
-    // function nudge() external {
-    //     address _epochGovernor = voter.epochGovernor();
-    //     if (msg.sender != _epochGovernor) revert NotEpochGovernor();
-    //     IEpochGovernor.ProposalState _state = IEpochGovernor(_epochGovernor).result();
-    //     if (weekly >= TAIL_START) revert TailEmissionsInactive();
-    //     uint256 _period = activePeriod;
-    //     if (proposals[_period]) revert AlreadyNudged();
-    //     uint256 _newRate = tailEmissionRate;
-    //     uint256 _oldRate = _newRate;
-
-    //     if (_state != IEpochGovernor.ProposalState.Expired) {
-    //         if (_state == IEpochGovernor.ProposalState.Succeeded) {
-    //             _newRate = _oldRate + NUDGE > MAXIMUM_TAIL_RATE ? MAXIMUM_TAIL_RATE : _oldRate + NUDGE;
-    //         } else {
-    //             _newRate = _oldRate - NUDGE < MINIMUM_TAIL_RATE ? MINIMUM_TAIL_RATE : _oldRate - NUDGE;
-    //         }
-    //         tailEmissionRate = _newRate;
-    //     }
-    //     proposals[_period] = true;
-    //     emit Nudge(_period, _oldRate, _newRate);
-    // }
-
 
     function updatePeriod() external returns (uint256 _period) {
         _period = activePeriod;
