@@ -18,7 +18,7 @@ interface IRewardsDistributor {
     /// @notice Duration of epoch in seconds
     function EPOCH_DURATION() external view returns (uint256);
 
-    /// @notice Starting weekly emission of 15M VELO (VELO has 18 decimals)
+    /// @notice Starting weekly emission of 15M IXS (IXS has 18 decimals)
     function epochRewards() external view returns (uint256);
 
     /// @notice Timestamp of start of epoch that updatePeriod was last called in
