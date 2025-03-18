@@ -86,34 +86,6 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         poolFees = _poolFees;
     }
 
-    // function _claimFees() internal returns (uint256 claimed0, uint256 claimed1) {
-    //     if (!isPool) {
-    //         return (0, 0);
-    //     }
-    //     (claimed0, claimed1) = IPool(stakingToken).claimFees();
-    //     if (claimed0 > 0 || claimed1 > 0) {
-    //         uint256 _fees0 = fees0 + claimed0;
-    //         uint256 _fees1 = fees1 + claimed1;
-    //         (address _token0, address _token1) = IPool(stakingToken).tokens();
-    //         if (_fees0 > DURATION) {
-    //             fees0 = 0;
-    //             IERC20(_token0).safeApprove(feesVotingReward, _fees0);
-    //             IReward(feesVotingReward).notifyRewardAmount(_token0, _fees0);
-    //         } else {
-    //             fees0 = _fees0;
-    //         }
-    //         if (_fees1 > DURATION) {
-    //             fees1 = 0;
-    //             IERC20(_token1).safeApprove(feesVotingReward, _fees1);
-    //             IReward(feesVotingReward).notifyRewardAmount(_token1, _fees1);
-    //         } else {
-    //             fees1 = _fees1;
-    //         }
-
-    //         emit ClaimFees(_msgSender(), claimed0, claimed1);
-    //     }
-    // }
-
     function _claimFees() internal {
         if (!isPool) {
             return;
@@ -264,7 +236,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     function _notifyRewardAmount(address sender, uint256 _amount) internal {
         rewardPerTokenStored = rewardPerToken();
         uint256 timestamp = block.timestamp;
-        uint256 currentPeriod = IVoter(voter).period();
+        uint256 currentPeriod = IVoter(voter).vestingPeriod();
         uint256 timeUntilNext = VelodromeTimeLibrary.periodNext(timestamp, currentPeriod) - timestamp;
 
         if (timestamp >= periodFinish) {
