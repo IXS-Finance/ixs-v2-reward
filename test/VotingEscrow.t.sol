@@ -83,11 +83,14 @@ contract VotingEscrowTest is BaseTest {
         VELO.approve(address(escrow), TOKEN_1);
         uint256 tokenId = escrow.createLock(TOKEN_1, MAXTIME);
         voter.depositManaged(tokenId, mTokenId);
-        deal(address(VELO), address(distributor), TOKEN_1);
+        deal(address(VELO), address(minter), TOKEN_1);
 
         uint256 pre = VELO.balanceOf(address(lockedManagedReward));
         IVotingEscrow.LockedBalance memory preLocked = escrow.locked(mTokenId);
-        vm.prank(address(distributor));
+        vm.prank(address(minter));
+        VELO.approve(address(escrow), TOKEN_1);
+
+        vm.prank(address(minter));
         vm.expectEmit(true, true, true, true, address(lockedManagedReward));
         emit NotifyReward(address(escrow), address(VELO), 604800, reward);
         vm.expectEmit(false, false, false, true, address(escrow));

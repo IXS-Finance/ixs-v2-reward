@@ -871,7 +871,7 @@ contract VoterTest is BaseTest {
     }
 
     function testCannotNotifyRewardAmountIfNotMinter() public {
-        vm.expectRevert(IVoter.NotMinter.selector);
+        vm.expectRevert(IVoter.NotDistributor.selector);
         voter.notifyRewardAmount(TOKEN_1);
     }
 

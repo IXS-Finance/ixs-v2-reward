@@ -7,7 +7,7 @@ import {GaugeFactory} from "contracts/factories/GaugeFactory.sol";
 import {PoolFactory, IPoolFactory} from "contracts/factories/PoolFactory.sol";
 import {IFactoryRegistry, FactoryRegistry} from "contracts/factories/FactoryRegistry.sol";
 import {Pool} from "contracts/Pool.sol";
-import {IMinter, Minter} from "contracts/Minter.sol";
+// import {IMinter, Minter} from "contracts/Minter.sol";
 import {IReward, Reward} from "contracts/rewards/Reward.sol";
 import {FeesVotingReward} from "contracts/rewards/FeesVotingReward.sol";
 import {BribeVotingReward} from "contracts/rewards/BribeVotingReward.sol";
@@ -17,7 +17,7 @@ import {IGauge, Gauge} from "contracts/gauges/Gauge.sol";
 import {PoolFees} from "contracts/PoolFees.sol";
 import {RewardsDistributor, IRewardsDistributor} from "contracts/RewardsDistributor.sol";
 import {IRouter, Router} from "contracts/Router.sol";
-import {IVelo, Velo} from "contracts/Velo.sol";
+import {IIxs, Velo} from "contracts/Velo.sol";
 import {IVoter, Voter} from "contracts/Voter.sol";
 import {VeArtProxy} from "contracts/VeArtProxy.sol";
 import {IVotingEscrow, VotingEscrow} from "contracts/VotingEscrow.sol";
@@ -63,8 +63,8 @@ abstract contract Base is Script, Test {
     VotingRewardsFactory public votingRewardsFactory;
     ManagedRewardsFactory public managedRewardsFactory;
     Voter public voter;
-    RewardsDistributor public distributor;
-    Minter public minter;
+    // RewardsDistributor public distributor;
+    RewardsDistributor public minter;
     Gauge public gauge;
     VeloGovernor public governor;
     EpochGovernor public epochGovernor;
@@ -89,10 +89,12 @@ abstract contract Base is Script, Test {
         escrow.setArtProxy(address(artProxy));
 
         // Setup voter and distributor
-        distributor = new RewardsDistributor(address(escrow));
-        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault);
+        // distributor = new RewardsDistributor(address(escrow));
+        uint period = 7 days;
+        voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault, period);
+        minter = new RewardsDistributor(address(voter), address(escrow));
 
-        escrow.setVoterAndDistributor(address(voter), address(distributor));
+        escrow.setVoterAndDistributor(address(voter), address(minter));
         escrow.setAllowedManager(allowedManager);
 
         // Setup router
@@ -106,8 +108,7 @@ abstract contract Base is Script, Test {
 
         // Setup minter
         // minter = new Minter(address(voter), address(escrow), address(distributor));
-        minter = new Minter(address(voter), address(escrow));
-        distributor.setMinter(address(minter));
+        // distributor.setMinter(address(minter));
         VELO.setMinter(address(minter));
 
         // /// @dev tokens are already set in the respective setupBefore()

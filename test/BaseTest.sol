@@ -194,8 +194,8 @@ abstract contract BaseTest is Base, TestOwner {
         vm.label(address(gaugeFactory), "Gauge Factory");
         vm.label(address(votingRewardsFactory), "Voting Rewards Factory");
         vm.label(address(voter), "Voter");
-        vm.label(address(distributor), "Distributor");
-        vm.label(address(minter), "Minter");
+        vm.label(address(minter), "Distributor");
+        // vm.label(address(minter), "Minter");
         vm.label(address(gauge), "Gauge");
         vm.label(address(governor), "Governor");
         vm.label(address(feesVotingReward), "Fees Voting Reward");
