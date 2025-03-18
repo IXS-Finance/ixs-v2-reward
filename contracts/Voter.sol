@@ -89,10 +89,9 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     IVault public vault;
     uint internal constant BASIC_POINT = 1e4;
     uint public feeForVe = 7e3;
-    uint256 public period;
+    uint256 public vestingPeriod;
 
-
-    constructor(address _forwarder, address _ve, address _factoryRegistry, address _vault) ERC2771Context(_forwarder) {
+    constructor(address _forwarder, address _ve, address _factoryRegistry, address _vault, uint256 _period) ERC2771Context(_forwarder) {
         forwarder = _forwarder;
         ve = _ve;
         factoryRegistry = _factoryRegistry;
@@ -104,6 +103,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         emergencyCouncil = _sender;
         maxVotingNum = 30;
         vault = IVault(_vault);
+        vestingPeriod = _period;
     }
 
     modifier onlyNewEpoch(uint256 _tokenId) {
@@ -335,23 +335,6 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         (address votingRewardsFactory, address gaugeFactory) = IFactoryRegistry(factoryRegistry).factoriesToPoolFactory(
             _poolFactory
         );
-        // bool isPool = IPoolFactory(_poolFactory).isPool(_pool);
-        // {
-        //     // stack too deep
-        //     address token0;
-        //     address token1;
-        //     if (isPool) {
-        //         token0 = IPool(_pool).token0();
-        //         token1 = IPool(_pool).token1();
-        //         rewards[0] = token0;
-        //         rewards[1] = token1;
-        //     }
-
-        //     if (sender != governor) {
-        //         if (!isPool) revert NotAPool();
-        //         if (!isWhitelistedToken[token0] || !isWhitelistedToken[token1]) revert NotWhitelistedToken();
-        //     }
-        // }
         address[] memory rewards;
         {
             // stack too deep
@@ -546,10 +529,10 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         emit RewardsDistributorChanged(_distributor);
     }
 
-    function setPeriod(uint256 _period) external {
+    function updateVestingPeriod(uint256 _period) external {
         if (_msgSender() != governor) revert NotGovernor();
         if(_period < DURATION) revert InvalidPeriod();
-        period = _period;
+        vestingPeriod = _period;
         emit PeriodChanged(_period);
     }
 }

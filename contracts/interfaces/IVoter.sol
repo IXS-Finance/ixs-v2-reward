@@ -277,5 +277,5 @@ interface IVoter {
 
     function feeForVe() external view returns (uint256);
     
-    function period() external view returns (uint256);
+    function vestingPeriod() external view returns (uint256);
 }
