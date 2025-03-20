@@ -232,7 +232,6 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         if (_amount == 0) revert ZeroAmount();
         _notifyRewardAmount(sender, _amount);
     }
-
     function _notifyRewardAmount(address sender, uint256 _amount) internal {
         rewardPerTokenStored = rewardPerToken();
         uint256 timestamp = block.timestamp;
@@ -267,10 +266,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         address _recipient,
         address _token
     ) internal {
-
-        uint256 _supplied = IERC20(stakingToken).balanceOf(_recipient); // get LP balance of `recipient`
+        uint256 _supplied = balanceOf[_recipient]; // get LP balance of `recipient`
         uint256 _indexRatio = indexRatio[_token]; // get global index for accumulated fees
-
         if (_supplied > 0) {
             uint256 _supplyIndex = supplyIndex[_recipient][_token]; // get last adjusted index for _recipient
             uint256 _index = _indexRatio; // get global index for accumulated fees
