@@ -57,12 +57,12 @@ contract LockedManagedRewardTest is BaseTest {
         uint256 pre = VELO.balanceOf(address(escrow));
         vm.prank(address(escrow));
         vm.expectEmit(true, true, true, true, address(lockedManagedReward));
-        emit NotifyReward(address(escrow), address(VELO), 604800, TOKEN_1);
+        emit NotifyReward(address(escrow), address(VELO), 1209600, TOKEN_1);
         lockedManagedReward.notifyRewardAmount(address(VELO), TOKEN_1);
         uint256 post = VELO.balanceOf(address(escrow));
 
         assertEq(lockedManagedReward.isReward(address(VELO)), true);
-        assertEq(lockedManagedReward.tokenRewardsPerEpoch(address(VELO), 604800), TOKEN_1);
+        assertEq(lockedManagedReward.tokenRewardsPerEpoch(address(VELO), 1209600), TOKEN_1);
         assertEq(pre - post, TOKEN_1);
         assertEq(VELO.balanceOf(address(lockedManagedReward)), TOKEN_1);
 
@@ -73,11 +73,11 @@ contract LockedManagedRewardTest is BaseTest {
         pre = VELO.balanceOf(address(escrow));
         vm.prank(address(escrow));
         vm.expectEmit(true, true, true, true, address(lockedManagedReward));
-        emit NotifyReward(address(escrow), address(VELO), 604800, TOKEN_1 * 2);
+        emit NotifyReward(address(escrow), address(VELO), 1209600, TOKEN_1 * 2);
         lockedManagedReward.notifyRewardAmount(address(VELO), TOKEN_1 * 2);
         post = VELO.balanceOf(address(escrow));
 
-        assertEq(lockedManagedReward.tokenRewardsPerEpoch(address(VELO), 604800), TOKEN_1 * 3);
+        assertEq(lockedManagedReward.tokenRewardsPerEpoch(address(VELO), 1209600), TOKEN_1 * 3);
         assertEq(pre - post, TOKEN_1 * 2);
         assertEq(VELO.balanceOf(address(lockedManagedReward)), TOKEN_1 * 3);
     }
