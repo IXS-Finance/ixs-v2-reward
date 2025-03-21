@@ -35,7 +35,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IGauge
     bool public immutable isPool;
 
-    uint256 internal constant DURATION = 7 days; // rewards are released over 7 days
+    // uint256 internal constant DURATION = 7 days; // rewards are released over 7 days
+    uint256 internal constant DURATION = 14 days; // rewards are released over 7 days
     uint256 internal constant PRECISION = 10 ** 18;
 
     /// @inheritdoc IGauge
@@ -268,6 +269,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     ) internal {
         uint256 _supplied = balanceOf[_recipient]; // get LP balance of `recipient`
         uint256 _indexRatio = indexRatio[_token]; // get global index for accumulated fees
+
         if (_supplied > 0) {
             uint256 _supplyIndex = supplyIndex[_recipient][_token]; // get last adjusted index for _recipient
             uint256 _index = _indexRatio; // get global index for accumulated fees
