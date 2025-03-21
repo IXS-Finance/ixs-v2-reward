@@ -143,8 +143,8 @@ contract LockedManagedRewardTest is BaseTest {
     }
 
     function _addLockedReward(uint256 _amount) internal {
-        deal(address(VELO), address(distributor), _amount);
-        vm.startPrank(address(distributor));
+        deal(address(VELO), address(minter), _amount);
+        vm.startPrank(address(minter));
         VELO.approve(address(escrow), _amount);
         escrow.depositFor(mTokenId, _amount);
         vm.stopPrank();

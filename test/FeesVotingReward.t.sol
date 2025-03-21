@@ -1735,20 +1735,20 @@ contract FeesVotingRewardTest is BaseTest {
         vm.startPrank(address(gauge));
         FRAX.approve(address(feesVotingReward), TOKEN_1);
         vm.expectEmit(true, true, true, true, address(feesVotingReward));
-        emit NotifyReward(address(gauge), address(FRAX), 604800, TOKEN_1);
+        emit NotifyReward(address(gauge), address(FRAX), 1209600, TOKEN_1);
         feesVotingReward.notifyRewardAmount(address(FRAX), TOKEN_1);
 
-        assertEq(feesVotingReward.tokenRewardsPerEpoch(address(FRAX), 604800), TOKEN_1);
+        assertEq(feesVotingReward.tokenRewardsPerEpoch(address(FRAX), 1209600), TOKEN_1);
         assertEq(FRAX.balanceOf(address(feesVotingReward)), TOKEN_1);
 
         skip(1 hours);
 
         FRAX.approve(address(feesVotingReward), TOKEN_1 * 2);
         vm.expectEmit(true, true, true, true, address(feesVotingReward));
-        emit NotifyReward(address(gauge), address(FRAX), 604800, TOKEN_1 * 2);
+        emit NotifyReward(address(gauge), address(FRAX), 1209600, TOKEN_1 * 2);
         feesVotingReward.notifyRewardAmount(address(FRAX), TOKEN_1 * 2);
 
-        assertEq(feesVotingReward.tokenRewardsPerEpoch(address(FRAX), 604800), TOKEN_1 * 3);
+        assertEq(feesVotingReward.tokenRewardsPerEpoch(address(FRAX), 1209600), TOKEN_1 * 3);
         assertEq(FRAX.balanceOf(address(feesVotingReward)), TOKEN_1 * 3);
     }
 }

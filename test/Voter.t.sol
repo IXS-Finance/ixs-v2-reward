@@ -159,7 +159,7 @@ contract VoterTest is BaseTest {
         voter.vote(tokenId, pools, weights);
 
         assertTrue(escrow.voted(tokenId));
-        assertEq(voter.lastVoted(tokenId), 608402);
+        assertEq(voter.lastVoted(tokenId), 1213202);
         assertEq(voter.totalWeight(), 997231719186530010);
         assertEq(voter.usedWeights(tokenId), 997231719186530010);
         assertEq(voter.weights(address(pool)), 332410573062176670);
@@ -176,7 +176,7 @@ contract VoterTest is BaseTest {
         voter.poke(1);
 
         assertTrue(escrow.voted(tokenId));
-        assertEq(voter.lastVoted(tokenId), 608402);
+        assertEq(voter.lastVoted(tokenId), 1213202);
         assertEq(voter.totalWeight(), 997231719186530010);
         assertEq(voter.usedWeights(tokenId), 997231719186530010);
         assertEq(voter.weights(address(pool)), 332410573062176670);
@@ -195,7 +195,7 @@ contract VoterTest is BaseTest {
         voter.poke(1);
 
         assertTrue(escrow.voted(tokenId));
-        assertEq(voter.lastVoted(tokenId), 608402);
+        assertEq(voter.lastVoted(tokenId), 1213202);
         assertEq(voter.totalWeight(), 996546787679762010);
         assertEq(voter.usedWeights(tokenId), 996546787679762010);
         assertEq(voter.weights(address(pool)), 332182262559920670);
@@ -447,7 +447,8 @@ contract VoterTest is BaseTest {
         uint256[] memory weights = new uint256[](1);
         weights[0] = 5000;
 
-        skip(7 days - 1 hours);
+        // skip(7 days - 1 hours);
+        skip(14 days - 1 hours);
         uint256 sid = vm.snapshot();
         voter.vote(1, pools, weights);
 
@@ -928,7 +929,8 @@ contract VoterTest is BaseTest {
         uint256 tokenId = escrow.createLock(TOKEN_1, MAXTIME);
         uint256 mTokenId = escrow.createManagedLockFor(address(owner));
 
-        skip(7 days - 1 hours);
+        // skip(7 days - 1 hours);
+        skip(14 days - 1 hours);
         uint256 sid = vm.snapshot();
         voter.depositManaged(tokenId, mTokenId);
 
