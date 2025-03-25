@@ -343,4 +343,292 @@ contract GaugeTest is BaseTest {
         assertEq(gauge.supplyIndex(user, address(USDC)), gauge.getIndexRatio(address(USDC)));
 
     }
+    
+    function testGetRewardsMultipleDepositors() public {
+        // Set up multiple users
+        address user1 = address(0x6);
+        address user2 = address(0x7);
+        address user3 = address(0x8);
+        
+        uint stakedAmount1 = 1e10;  // 1/3 of total stake
+        uint stakedAmount2 = 1e10;  // 1/3 of total stake
+        uint stakedAmount3 = 1e10;  // 1/3 of total stake
+
+        uint feeAmount1 = 9e16; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 3e10 / 1e12
+        uint feeAmount2 = 18e16; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 3e10 / 1e12
+
+        // Mock the staking token balance for all users
+        deal(address(pool), user1, stakedAmount1);
+        deal(address(pool), user2, stakedAmount2);
+        deal(address(pool), user3, stakedAmount3);
+        
+
+        // Simulate users staking
+        vm.prank(user1);
+        IERC20(address(pool)).approve(address(gauge), stakedAmount1);
+        vm.prank(user2);
+        IERC20(address(pool)).approve(address(gauge), stakedAmount2);
+        vm.prank(user3);
+        IERC20(address(pool)).approve(address(gauge), stakedAmount3);
+
+        vm.prank(user1);
+        gauge.deposit(stakedAmount1);
+        vm.prank(user2);
+        gauge.deposit(stakedAmount2);
+        vm.prank(user3);
+        gauge.deposit(stakedAmount3);
+
+        // Set up the reward token balance and approval
+        deal(address(VELO), address(voter), rewardAmount);
+        deal(address(FRAX), address(gauge), amount1);
+        deal(address(USDC), address(gauge), amount2);
+        vm.prank(address(voter));
+        IERC20(address(VELO)).approve(address(gauge), rewardAmount);
+
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(FRAX);  // FRAX
+        tokens[1] = address(USDC);  // USDC
+
+        MockPoolFees(address(gauge.poolFees())).setTokens(tokens);
+
+        // Call notifyRewardAmount as the voter
+        vm.prank(address(voter));
+        gauge.notifyRewardAmount(rewardAmount);
+
+        // Calculate expected rewards for each user (1/3 of total)
+        uint expectedFeeAmount1 = feeAmount1 / 3;
+        uint expectedFeeAmount2 = feeAmount2 / 3;
+
+        // Call getReward for each user
+        vm.prank(user1);
+        gauge.getReward(user1);
+        vm.prank(user2);
+        gauge.getReward(user2);
+        vm.prank(user3);
+        gauge.getReward(user3);
+
+        assertEq(IERC20(address(FRAX)).balanceOf(user1), expectedFeeAmount1);
+        assertEq(IERC20(address(USDC)).balanceOf(user1), expectedFeeAmount2);
+        assertEq(IERC20(address(FRAX)).balanceOf(user2), expectedFeeAmount1);
+        assertEq(IERC20(address(USDC)).balanceOf(user2), expectedFeeAmount2);
+        assertEq(IERC20(address(FRAX)).balanceOf(user3), expectedFeeAmount1);
+        assertEq(IERC20(address(USDC)).balanceOf(user3), expectedFeeAmount2);
+
+        // Check that the claimable amounts are reset for all users
+        assertEq(gauge.claimable(user1, address(FRAX)), 0);
+        assertEq(gauge.claimable(user1, address(USDC)), 0);
+        assertEq(gauge.claimable(user2, address(FRAX)), 0);
+        assertEq(gauge.claimable(user2, address(USDC)), 0);
+        assertEq(gauge.claimable(user3, address(FRAX)), 0);
+        assertEq(gauge.claimable(user3, address(USDC)), 0);
+
+        // Check that the state storage is updated correctly for all users
+        assertEq(gauge.rewards(user1), 0);
+        assertEq(gauge.rewards(user2), 0);
+        assertEq(gauge.rewards(user3), 0);
+        assertEq(gauge.userRewardPerTokenPaid(user1), gauge.rewardPerTokenStored());
+        assertEq(gauge.userRewardPerTokenPaid(user2), gauge.rewardPerTokenStored());
+        assertEq(gauge.userRewardPerTokenPaid(user3), gauge.rewardPerTokenStored());
+    }
+
+    function testGetRewardsMultipleDepositorsWithEarlyWithdrawal() public {
+        // Set up multiple users
+        address user1 = address(0x6);
+        address user2 = address(0x7);
+        address user3 = address(0x8);
+        
+        uint stakedAmount1 = 1e10;  // 1/3 of total stake
+        uint stakedAmount2 = 1e10;  // 1/3 of total stake
+        uint stakedAmount3 = 1e10;  // 1/3 of total stake
+
+        uint feeAmount1 = 6e16; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 2e10 / 1e12
+        uint feeAmount2 = 12e16; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 2e10 / 1e12
+
+        // Mock the staking token balance for all users
+        deal(address(pool), user1, stakedAmount1);
+        deal(address(pool), user2, stakedAmount2);
+        deal(address(pool), user3, stakedAmount3);
+
+        // Simulate users staking
+        vm.prank(user1);
+        IERC20(address(pool)).approve(address(gauge), stakedAmount1);
+        vm.prank(user2);
+        IERC20(address(pool)).approve(address(gauge), stakedAmount2);
+        vm.prank(user3);
+        IERC20(address(pool)).approve(address(gauge), stakedAmount3);
+
+        vm.prank(user1);
+        gauge.deposit(stakedAmount1);
+        vm.prank(user2);
+        gauge.deposit(stakedAmount2);
+        vm.prank(user3);
+        gauge.deposit(stakedAmount3);
+
+        // User1 withdraws their stake
+        vm.prank(user1);
+        gauge.withdraw(stakedAmount1);
+
+        // Set up the reward token balance and approval
+        deal(address(VELO), address(voter), rewardAmount);
+        deal(address(FRAX), address(gauge), amount1);
+        deal(address(USDC), address(gauge), amount2);
+        vm.prank(address(voter));
+        IERC20(address(VELO)).approve(address(gauge), rewardAmount);
+
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(FRAX);  // FRAX
+        tokens[1] = address(USDC);  // USDC
+
+        MockPoolFees(address(gauge.poolFees())).setTokens(tokens);
+
+        // Call notifyRewardAmount as the voter
+        vm.prank(address(voter));
+        gauge.notifyRewardAmount(rewardAmount);
+
+        // Calculate expected rewards for remaining users (1/2 of total each)
+        uint expectedFeeAmount1 = feeAmount1 / 2;
+        uint expectedFeeAmount2 = feeAmount2 / 2;
+
+        // Call getReward for remaining users
+        vm.prank(user2);
+        gauge.getReward(user2);
+        vm.prank(user3);
+        gauge.getReward(user3);
+
+        // Check that user1 received no rewards
+        assertEq(IERC20(address(FRAX)).balanceOf(user1), 0);
+        assertEq(IERC20(address(USDC)).balanceOf(user1), 0);
+
+        // Check that remaining users received their proportional share
+        assertEq(IERC20(address(FRAX)).balanceOf(user2), expectedFeeAmount1);
+        assertEq(IERC20(address(USDC)).balanceOf(user2), expectedFeeAmount2);
+        assertEq(IERC20(address(FRAX)).balanceOf(user3), expectedFeeAmount1);
+        assertEq(IERC20(address(USDC)).balanceOf(user3), expectedFeeAmount2);
+
+        // Check that the claimable amounts are reset for all users
+        assertEq(gauge.claimable(user1, address(FRAX)), 0);
+        assertEq(gauge.claimable(user1, address(USDC)), 0);
+        assertEq(gauge.claimable(user2, address(FRAX)), 0);
+        assertEq(gauge.claimable(user2, address(USDC)), 0);
+        assertEq(gauge.claimable(user3, address(FRAX)), 0);
+        assertEq(gauge.claimable(user3, address(USDC)), 0);
+
+        // Check that the state storage is updated correctly for all users
+        assertEq(gauge.rewards(user1), 0);
+        assertEq(gauge.rewards(user2), 0);
+        assertEq(gauge.rewards(user3), 0);
+        assertEq(gauge.userRewardPerTokenPaid(user1), gauge.rewardPerTokenStored());
+        assertEq(gauge.userRewardPerTokenPaid(user2), gauge.rewardPerTokenStored());
+        assertEq(gauge.userRewardPerTokenPaid(user3), gauge.rewardPerTokenStored());
+
+        // Verify user1's withdrawal
+        assertEq(IERC20(address(pool)).balanceOf(user1), stakedAmount1);
+        assertEq(gauge.balanceOf(user1), 0);
+    }
+
+    function testGetRewardsMultipleDepositorsWithWithdrawalBetweenRewards() public {
+        // Set up multiple users
+        address user1 = address(0x6);
+        address user2 = address(0x7);
+        address user3 = address(0x8);
+        
+        uint stakedAmount1 = 1e10;  // 1/3 of total stake
+        uint stakedAmount2 = 1e10;  // 1/3 of total stake
+        uint stakedAmount3 = 1e10;  // 1/3 of total stake
+
+        uint feeAmount1 = 9e16; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 1e10 / 1e12
+        uint feeAmount2 = 18e16; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 1e10 / 1e12
+
+        // Mock the staking token balance for all users
+        deal(address(pool), user1, stakedAmount1);
+        deal(address(pool), user2, stakedAmount2);
+        deal(address(pool), user3, stakedAmount3);
+
+        // Simulate users staking
+        vm.prank(user1);
+        IERC20(address(pool)).approve(address(gauge), stakedAmount1);
+        vm.prank(user2);
+        IERC20(address(pool)).approve(address(gauge), stakedAmount2);
+        vm.prank(user3);
+        IERC20(address(pool)).approve(address(gauge), stakedAmount3);
+
+        vm.prank(user1);
+        gauge.deposit(stakedAmount1);
+        vm.prank(user2);
+        gauge.deposit(stakedAmount2);
+        vm.prank(user3);
+        gauge.deposit(stakedAmount3);
+
+        // Set up the reward token balance and approval
+        deal(address(VELO), address(voter), 2 * rewardAmount);
+        deal(address(FRAX), address(gauge), 2 * amount1);
+        deal(address(USDC), address(gauge), 2 * amount2);
+        vm.prank(address(voter));
+        IERC20(address(VELO)).approve(address(gauge), 2 * rewardAmount);
+
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(FRAX);  // FRAX
+        tokens[1] = address(USDC);  // USDC
+
+        MockPoolFees(address(gauge.poolFees())).setTokens(tokens);
+
+        // First reward notification
+        vm.prank(address(voter));
+        gauge.notifyRewardAmount(rewardAmount);
+
+        vm.prank(user1);
+        gauge.getReward(user1);
+
+        // User1 withdraws their stake
+        vm.prank(user1);
+        gauge.withdraw(stakedAmount1);
+
+        // Second reward notification
+        vm.prank(address(voter));
+        gauge.notifyRewardAmount(rewardAmount);
+
+        // Calculate expected rewards
+        // For first reward: 1/3 of feeAmount1/2 for each user
+        // For second reward: 1/2 of feeAmount1/2 for remaining users
+        uint newFeeAmount1 = 6e16; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 2e10 / 1e12
+        uint newFeeAmount2 = 12e16; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 2e10 / 1e12
+        uint expectedFeeAmount1 = (feeAmount1 / 3) + (newFeeAmount1 / 2);
+        uint expectedFeeAmount2 = (feeAmount2 / 3) + (newFeeAmount2 / 2);
+
+        // Call getReward for remaining users
+        vm.prank(user2);
+        gauge.getReward(user2);
+        vm.prank(user3);
+        gauge.getReward(user3);
+
+        // Check that user1 received 1/3 first rewards
+        assertEq(IERC20(address(FRAX)).balanceOf(user1), feeAmount1 / 3);
+        assertEq(IERC20(address(USDC)).balanceOf(user1), feeAmount2 / 3);
+
+        // Check that remaining users received their proportional share
+        assertEq(IERC20(address(FRAX)).balanceOf(user2), expectedFeeAmount1);
+        assertEq(IERC20(address(USDC)).balanceOf(user2), expectedFeeAmount2);
+        assertEq(IERC20(address(FRAX)).balanceOf(user3), expectedFeeAmount1);
+        assertEq(IERC20(address(USDC)).balanceOf(user3), expectedFeeAmount2);
+
+        // Check that the claimable amounts are reset for all users
+        assertEq(gauge.claimable(user1, address(FRAX)), 0);
+        assertEq(gauge.claimable(user1, address(USDC)), 0);
+        assertEq(gauge.claimable(user2, address(FRAX)), 0);
+        assertEq(gauge.claimable(user2, address(USDC)), 0);
+        assertEq(gauge.claimable(user3, address(FRAX)), 0);
+        assertEq(gauge.claimable(user3, address(USDC)), 0);
+
+        // Check that the state storage is updated correctly for all users
+        assertEq(gauge.rewards(user1), 0);
+        assertEq(gauge.rewards(user2), 0);
+        assertEq(gauge.rewards(user3), 0);
+        assertEq(gauge.userRewardPerTokenPaid(user1), gauge.rewardPerTokenStored());
+        assertEq(gauge.userRewardPerTokenPaid(user2), gauge.rewardPerTokenStored());
+        assertEq(gauge.userRewardPerTokenPaid(user3), gauge.rewardPerTokenStored());
+
+        // Verify user1's withdrawal
+        assertEq(IERC20(address(pool)).balanceOf(user1), stakedAmount1);
+        assertEq(gauge.balanceOf(user1), 0);
+    }
 }
