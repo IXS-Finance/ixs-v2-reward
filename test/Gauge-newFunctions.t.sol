@@ -71,10 +71,10 @@ contract GaugeTest is BaseTest {
         assertEq(IERC20(FRAX).balanceOf(address(gauge)), remain1);
         assertEq(IERC20(USDC).balanceOf(address(gauge)), remain2);
 
-        uint256 expectedRatio1 = (remain1 * 1e18) / IERC20(address(gauge.stakingToken())).totalSupply();
+        uint256 expectedRatio1 = (remain1 * 1e30) / IERC20(address(gauge.stakingToken())).totalSupply();
         assertEq(gauge.getIndexRatio(address(FRAX)), expectedRatio1);
 
-        uint256 expectedRatio2 = (remain2 * 1e18) / IERC20(address(gauge.stakingToken())).totalSupply();
+        uint256 expectedRatio2 = (remain2 * 1e30) / IERC20(address(gauge.stakingToken())).totalSupply();
         assertEq(gauge.getIndexRatio(address(USDC)), expectedRatio2);
 
         uint256 expectedRewardRate = rewardAmount / (gauge.periodFinish() - block.timestamp);

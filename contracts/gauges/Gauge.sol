@@ -276,7 +276,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             supplyIndex[_recipient][_token] = _index; // update user current position to global position
             uint256 _delta0 = _index - _supplyIndex; // see if there is any difference that need to be accrued
             if (_delta0 > 0) {
-                uint256 _share = (_supplied * _delta0) / 1e18; // add accrued difference for each supplied token
+                uint256 _share = (_supplied * _delta0) / 1e30; // add accrued difference for each supplied token
                 claimable[_recipient][_token] += _share;
             }
         } else {
@@ -295,7 +295,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     ) internal {
         // Only update on this pool if there is a fee
         if (_feeAmount == 0) return;
-        uint256 _ratio = (_feeAmount * 1e18) / IERC20(stakingToken).totalSupply(); // 1e18 adjustment is removed during claim
+        uint256 _ratio = (_feeAmount * 1e30) / IERC20(stakingToken).totalSupply(); // 1e30 adjustment is removed during claim
         if (_ratio > 0) {
             indexRatio[_token] += _ratio;
         }
