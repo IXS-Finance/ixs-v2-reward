@@ -12,8 +12,6 @@ import {console} from "forge-std/console.sol";
 
 
 /// @title RewardsDistributor
-/// @author velodrome.finance, @figs999, @pegahcarter
-/// @notice Controls minting of emissions and rebases for Velodrome
 contract RewardsDistributor is IRewardsDistributor {
     using SafeERC20 for IIxs;
 
@@ -21,11 +19,7 @@ contract RewardsDistributor is IRewardsDistributor {
 
     IVoter public immutable voter;
 
-    uint256 public constant EPOCH_DURATION = 1 weeks;
-
-    IVotingEscrow public immutable ve;
-
-    uint256 public epochRewards = 15_000_000 * 1e18;
+    uint256 public constant EPOCH_DURATION = 2 weeks;
 
     uint256 public activePeriod;
 
@@ -33,17 +27,19 @@ contract RewardsDistributor is IRewardsDistributor {
 
     address public pendingTeam;
 
+    uint256 public availableDeposit;
+
+    uint256 public lastAvailableDeposit;
+
     constructor(
-        address _voter, // the voting & distribution system
-        address _ve // the ve(3,3) system that will be locked into
+        address _voter // the voting & distribution system
     ) {
-        ixs = IIxs(IVotingEscrow(_ve).token());
         voter = IVoter(_voter);
-        ve = IVotingEscrow(_ve);
+        IVotingEscrow IVe = IVotingEscrow(IVoter(_voter).ve());
+        ixs = IIxs(IVe.token());
         team = msg.sender;
         activePeriod = ((block.timestamp) / EPOCH_DURATION) * EPOCH_DURATION; // allow emissions this coming epoch
     }
-
 
     function setTeam(address _team) external {
         if (msg.sender != team) revert NotTeam();
@@ -63,18 +59,23 @@ contract RewardsDistributor is IRewardsDistributor {
         if (block.timestamp >= _period + EPOCH_DURATION) {
             _period = (block.timestamp / EPOCH_DURATION) * EPOCH_DURATION;
             activePeriod = _period;
-            uint256 _epochRewards = epochRewards;
+            if (availableDeposit == 0) {
+                return 0;
+            }
 
-            ixs.approve(address(voter), _epochRewards);
-            voter.notifyRewardAmount(_epochRewards);
-
-            emit Mint(msg.sender, _epochRewards);
+            ixs.approve(address(voter), availableDeposit);
+            voter.notifyRewardAmount(availableDeposit);
+            lastAvailableDeposit = availableDeposit;
+            emit Mint(msg.sender, availableDeposit);
+            availableDeposit = 0;
         }
     }
 
-    function changeEpochRewards(uint256 _newEpochRewards) external {
+    function deposit(uint amount) external {
         if (msg.sender != team) revert NotTeam();
-        emit ChangeEpochRewards(epochRewards, _newEpochRewards);
-        epochRewards = _newEpochRewards;
+        if (amount == 0) revert ZeroAmount();
+        ixs.safeTransferFrom(msg.sender, address(this), amount);
+        availableDeposit += amount;
+        emit Deposit(msg.sender, amount);
     }
 }

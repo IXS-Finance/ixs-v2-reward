@@ -10,16 +10,18 @@ interface IRewardsDistributor {
     event Mint(address indexed _sender, uint256 _weekly);
     event AcceptTeam(address indexed _newTeam);
     event ChangeEpochRewards(uint256 oldRewards, uint256 newRewards);
+    event Deposit(address indexed _sender, uint256 _amount);
 
     error NotTeam();
     error ZeroAddress();
     error NotPendingTeam();
+    error ZeroAmount();
 
     /// @notice Duration of epoch in seconds
     function EPOCH_DURATION() external view returns (uint256);
 
     /// @notice Starting weekly emission of 15M IXS (IXS has 18 decimals)
-    function epochRewards() external view returns (uint256);
+    // function epochRewards() external view returns (uint256);
 
     /// @notice Timestamp of start of epoch that updatePeriod was last called in
     function activePeriod() external returns (uint256);
@@ -43,6 +45,9 @@ interface IRewardsDistributor {
     function updatePeriod() external returns (uint256 _period);
 
     /// @notice change epoch reward emission
-    function changeEpochRewards(uint256 _newEpochRewards) external;
+    // function changeEpochRewards(uint256 _newEpochRewards) external;
+
+    /// @notice Deposit IXS into the contract to be used for emissions
+    // function deposit(uint256 _amount) external;
 
 }
