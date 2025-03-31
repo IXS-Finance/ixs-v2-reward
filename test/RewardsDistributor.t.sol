@@ -43,35 +43,25 @@ contract RewardsDistributorTest is BaseTest {
     }
 
     function testUpdatePeriodSuccess() public {
-        vm.warp(block.timestamp + 1 weeks); // Move forward in time
+        vm.warp(block.timestamp + 2 weeks); // Move forward in time
         uint256 epochRewards = 15_000_000 * 1e18;
-        deal(address(VELO), address(minter), epochRewards);
+        // deal(address(VELO), address(minter), epochRewards);
+        address _team = IRewardsDistributor(minter).team();
+        deal(address(VELO), address(_team), epochRewards);
+        vm.startPrank(_team);
+        VELO.approve(address(minter), epochRewards);
+        minter.deposit(epochRewards);
+        vm.stopPrank();
+        assertEq(minter.availableDeposit(), epochRewards);
 
         vm.expectEmit(true, true, false, true, address(voter));
         emit NotifyReward(address(minter), address(VELO), epochRewards);
         vm.expectEmit(true, false, false, true, address(minter));
         emit Mint(address(owner), epochRewards);
         minter.updatePeriod();
-        assertEq(minter.activePeriod(), block.timestamp / 1 weeks * 1 weeks);
-    }
-
-    function testChangeEpochRewardsSuccess() public {
-        uint256 newEpochRewards = 10_000_000 * 1e18;
-        minter.changeEpochRewards(newEpochRewards);
-        assertEq(minter.epochRewards(), newEpochRewards);
-    }
-
-    function testUpdatePeriodInsufficientBalance() public {
-        // Move forward in time to ensure the period can be updated
-        vm.warp(block.timestamp + 1 weeks);
-
-        // Ensure the RewardsDistributor has zero balance of VELO
-        uint256 epochRewards = 15_000_000 * 1e18;
-        deal(address(VELO), address(minter), 0);
-
-        // Expect the updatePeriod to fail due to insufficient balance
-        vm.expectRevert("ERC20: transfer amount exceeds balance");
-        minter.updatePeriod();
+        assertEq(minter.activePeriod(), block.timestamp / 2 weeks * 2 weeks);
+        assertEq(minter.availableDeposit(), 0);
+        assertEq(minter.lastAvailableDeposit(), epochRewards);
     }
 
     function testUpdatePeriodNoChange() public {
@@ -94,10 +84,31 @@ contract RewardsDistributorTest is BaseTest {
         assertEq(initialBalance, finalBalance);
     }
 
-    function testChangeEpochRewardsRevertNotTeam() public {
-        uint256 newEpochRewards = 10_000_000 * 1e18;
-        vm.prank(nonTeam);
+    function testDepositSuccess() public {
+        vm.startPrank(minter.team());
+        uint256 epochRewards = 15_000_000 * 1e18;
+        deal(address(VELO), address(minter.team()), epochRewards);
+        VELO.approve(address(minter), epochRewards);
+        minter.deposit(epochRewards);
+        vm.stopPrank();
+        assertEq(minter.availableDeposit(), epochRewards);
+        assertEq(minter.lastAvailableDeposit(), 0);
+        assertEq(VELO.balanceOf(address(minter)), epochRewards);
+    }
+    function testDepositRevertNotTeam() public {
+        vm.startPrank(nonTeam);
+        uint256 epochRewards = 15_000_000 * 1e18;
+        deal(address(VELO), address(minter.team()), epochRewards);
+        VELO.approve(address(minter), epochRewards);
         vm.expectRevert(IRewardsDistributor.NotTeam.selector);
-        minter.changeEpochRewards(newEpochRewards);
+        minter.deposit(epochRewards);
+    }
+    function testDepositRevertZeroAmount() public {
+        vm.startPrank(minter.team());
+        uint256 epochRewards = 0;
+        deal(address(VELO), address(minter), epochRewards);
+        VELO.approve(address(minter), epochRewards);
+        vm.expectRevert(IRewardsDistributor.ZeroAmount.selector);
+        minter.deposit(epochRewards);
     }
 }

@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import "./BaseTest.sol";
+import {IRewardsDistributor} from "contracts/interfaces/IRewardsDistributor.sol";
 
 contract VoterTest is BaseTest {
     event WhitelistToken(address indexed whitelister, address indexed token, bool indexed _bool);
@@ -802,9 +803,15 @@ contract VoterTest is BaseTest {
         _seedVoterWithVotingSupply();
 
         // transfer some VELO to minter
-        deal(address(VELO), address(minter), 15e24);
+        // deal(address(VELO), address(minter), 15e24);
 
         skipToNextEpoch(1);
+        address _team = IRewardsDistributor(minter).team();
+        deal(address(VELO), address(_team), 15e24);
+        vm.startPrank(_team);
+        VELO.approve(address(minter), 15e24);
+        minter.deposit(15e24);
+        vm.stopPrank();
         minter.updatePeriod();
         voter.updateFor(address(gauge));
 
@@ -822,9 +829,15 @@ contract VoterTest is BaseTest {
         _seedVoterWithVotingSupply();
         
         // transfer some VELO to minter
-        deal(address(VELO), address(minter), 15e24);
+        // deal(address(VELO), address(minter), 15e24);
 
         skipToNextEpoch(1);
+        address _team = IRewardsDistributor(minter).team();
+        deal(address(VELO), address(_team), 15e24);
+        vm.startPrank(_team);
+        VELO.approve(address(minter), 15e24);
+        minter.deposit(15e24);
+        vm.stopPrank();
         minter.updatePeriod();
 
         voter.updateFor(address(gauge));
@@ -844,8 +857,14 @@ contract VoterTest is BaseTest {
         _seedVoterWithVotingSupply();
 
         // transfer some VELO to minter
-        deal(address(VELO), address(minter), 15e24);
+        // deal(address(VELO), address(minter), 15e24);
         skipToNextEpoch(1);
+        address _team = IRewardsDistributor(minter).team();
+        deal(address(VELO), address(_team), 15e24);
+        vm.startPrank(_team);
+        VELO.approve(address(minter), 15e24);
+        minter.deposit(15e24);
+        vm.stopPrank();
         minter.updatePeriod();
 
         // both gauges have equal voting weight

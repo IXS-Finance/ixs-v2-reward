@@ -92,7 +92,8 @@ abstract contract Base is Script, Test {
         // distributor = new RewardsDistributor(address(escrow));
         uint period = 7 days;
         voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault, period);
-        minter = new RewardsDistributor(address(voter), address(escrow));
+        // minter = new RewardsDistributor(address(voter), address(escrow));
+        minter = new RewardsDistributor(address(voter));
 
         escrow.setVoterAndDistributor(address(voter), address(minter));
         escrow.setAllowedManager(allowedManager);
