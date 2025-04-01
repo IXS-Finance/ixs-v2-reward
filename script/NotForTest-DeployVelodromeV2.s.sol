@@ -2,9 +2,9 @@
 pragma solidity 0.8.19;
 
 import "forge-std/StdJson.sol";
-import "../test/Base.sol";
+import "../test/Base_NotForTest.sol";
 
-contract DeployVelodromeV2 is Base {
+contract NotForTest_DeployVelodromeV2 is Base {
     using stdJson for string;
     string public basePath;
     string public path;
@@ -33,6 +33,7 @@ contract DeployVelodromeV2 is Base {
         team = abi.decode(vm.parseJson(jsonConstants, ".team"), (address));
         feeManager = abi.decode(vm.parseJson(jsonConstants, ".feeManager"), (address));
         emergencyCouncil = abi.decode(vm.parseJson(jsonConstants, ".emergencyCouncil"), (address));
+        vault = abi.decode(vm.parseJson(jsonConstants, ".vault"), (address));
     }
 
     function run() public {
@@ -57,7 +58,8 @@ contract DeployVelodromeV2 is Base {
         vm.startBroadcast(deployerAddress);
 
         // deploy VELO
-        VELO = new Velo();
+        // VELO = new Velo();
+        VELO = Velo(0x949546713004ee02537292b1F41046f705909191);
 
         tokens.push(address(VELO));
     }
@@ -86,7 +88,6 @@ contract DeployVelodromeV2 is Base {
         vm.writeJson(vm.serializeAddress("v2", "ArtProxy", address(artProxy)), path);
         vm.writeJson(vm.serializeAddress("v2", "Distributor", address(minter)), path);
         vm.writeJson(vm.serializeAddress("v2", "Voter", address(voter)), path);
-        vm.writeJson(vm.serializeAddress("v2", "Router", address(router)), path);
         // vm.writeJson(vm.serializeAddress("v2", "Minter", address(distributor)), path);
         vm.writeJson(vm.serializeAddress("v2", "PoolFactory", address(factory)), path);
         vm.writeJson(vm.serializeAddress("v2", "VotingRewardsFactory", address(votingRewardsFactory)), path);
