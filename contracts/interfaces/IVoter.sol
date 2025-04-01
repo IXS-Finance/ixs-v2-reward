@@ -278,4 +278,6 @@ interface IVoter {
     function feeForVe() external view returns (uint256);
     
     function vestingPeriod() external view returns (uint256);
+
+    function poolVote(uint256 tokenId, uint256 index) external view returns (address);
 }

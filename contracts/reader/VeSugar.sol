@@ -17,7 +17,7 @@ contract VeSugar {
         uint256 id;
         address account;
         uint8 decimals;
-        uint128 amount;
+        int128 amount;
         uint256 votingAmount;
         uint256 expiresAt;
         uint256 votedAt;
@@ -127,7 +127,7 @@ contract VeSugar {
                 });
         }
 
-        (uint128 amount, uint256 expiresAt, bool permanent) = ve.locked(id);
+        IVotingEscrow.LockedBalance memory lockedBalance = ve.locked(id);
         uint256 votingAmount = ve.balanceOfNFT(id);
         uint8 decimals = ve.decimals();
 
@@ -145,13 +145,13 @@ contract VeSugar {
                 id: id,
                 account: owner,
                 decimals: decimals,
-                amount: amount,
+                amount: lockedBalance.amount,
                 votingAmount: votingAmount,
-                expiresAt: expiresAt,
+                expiresAt: lockedBalance.end,
                 votedAt: votedAt,
                 votes: trimmedVotes,
                 token: token,
-                permanent: permanent,
+                permanent: lockedBalance.isPermanent,
                 delegateId: delegateId,
                 managedId: managedId
             });

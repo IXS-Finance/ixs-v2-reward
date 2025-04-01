@@ -31,6 +31,7 @@ import {Forwarder} from "@opengsn/contracts/src/forwarder/Forwarder.sol";
 import {MockVault} from "test/utils/MockVault.sol";
 import {MockPoolFees} from "test/utils/MockPoolFees.sol";
 import {MockPool} from "test/utils/MockPool.sol";
+import {VeSugar} from "../contracts/reader/VeSugar.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/Test.sol";
@@ -74,6 +75,8 @@ abstract contract Base is Script, Test {
     address public vault;// = 0x05E7A5e0eBd927F814C80eFAf0213667A5b288C0;
     address public poolFees;
 
+    address veSugar;
+
     function _coreSetup() public {
         deployFactories();
 
@@ -95,6 +98,8 @@ abstract contract Base is Script, Test {
 
         // /// @dev tokens are already set in the respective setupBefore()
         voter.initialize(tokens, address(minter));
+
+        veSugar = address(new VeSugar(address(voter)));
     }
 
     function deployFactories() public {

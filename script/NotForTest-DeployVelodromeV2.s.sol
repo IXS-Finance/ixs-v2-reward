@@ -78,6 +78,8 @@ contract NotForTest_DeployVelodromeV2 is Base {
         factory.setFeeManager(feeManager);
         factory.setVoter(address(voter));
 
+
+
         // finish broadcasting transactions
         vm.stopBroadcast();
 
@@ -94,5 +96,6 @@ contract NotForTest_DeployVelodromeV2 is Base {
         vm.writeJson(vm.serializeAddress("v2", "GaugeFactory", address(gaugeFactory)), path);
         vm.writeJson(vm.serializeAddress("v2", "ManagedRewardsFactory", address(managedRewardsFactory)), path);
         vm.writeJson(vm.serializeAddress("v2", "FactoryRegistry", address(factoryRegistry)), path);
+        vm.writeJson(vm.serializeAddress("v2", "VeSugar", address(veSugar)), path);
     }
 }
