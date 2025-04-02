@@ -88,7 +88,8 @@ abstract contract Base is Script, Test {
 
         // Setup voter and distributor
         // distributor = new RewardsDistributor(address(escrow));
-        uint period = 14 days;
+        // uint period = 14 days;
+        uint period = 2 days;
         voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault, period);
 
         // minter = new RewardsDistributor(address(voter), address(escrow));

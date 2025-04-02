@@ -19,7 +19,7 @@ contract RewardsDistributor is IRewardsDistributor {
 
     IVoter public immutable voter;
 
-    uint256 public constant EPOCH_DURATION = 2 weeks;
+    uint256 public constant EPOCH_DURATION = 2 days;
 
     uint256 public activePeriod;
 

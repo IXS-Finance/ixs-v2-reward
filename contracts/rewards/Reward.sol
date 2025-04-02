@@ -18,7 +18,7 @@ abstract contract Reward is IReward, ERC2771Context, ReentrancyGuard {
 
     /// @inheritdoc IReward
     // uint256 public constant DURATION = 7 days;
-    uint256 public constant DURATION = 14 days;
+    uint256 public constant DURATION = 2 days;
 
     /// @inheritdoc IReward
     address public immutable voter;

@@ -9,7 +9,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 library DelegationHelperLibrary {
     // uint256 public constant DURATION = 7 days;
-    uint256 public constant DURATION = 14 days;
+    uint256 public constant DURATION = 2 days;
 
     /// Helper function to fetch the checkpoint for the last voting checkpoint prior to a timepoint
     /// Adapted from DelegationLogicLibrary.sol:getPastVotesIndex(uint256 tokenId, uint256 timestamp)
