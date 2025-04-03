@@ -149,9 +149,9 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         for(uint256 i = 0; i < tokens.length; i++) {
             _updateSupplyIndex(_account, address(tokens[i]));
             IERC20 token = tokens[i];
-            uint256 claimableAmount = claimable[msg.sender][address(token)];
+            uint256 claimableAmount = claimable[_account][address(token)];
             if (claimableAmount > 0) {
-                claimable[msg.sender][address(token)] = 0;
+                claimable[_account][address(token)] = 0;
                 token.safeTransfer(_account, claimableAmount);
                 emit ClaimTradingFees(address(token), _account, claimableAmount);
             }
@@ -295,7 +295,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     ) internal {
         // Only update on this pool if there is a fee
         if (_feeAmount == 0) return;
-        uint256 _ratio = (_feeAmount * 1e30) / IERC20(stakingToken).totalSupply(); // 1e30 adjustment is removed during claim
+        // uint256 _ratio = (_feeAmount * 1e30) / IERC20(stakingToken).totalSupply(); // 1e30 adjustment is removed during claim
+        uint256 _ratio = (_feeAmount * 1e30) / IERC20(stakingToken).balanceOf(address(this)); // 1e30 adjustment is removed during claim
         if (_ratio > 0) {
             indexRatio[_token] += _ratio;
         }
