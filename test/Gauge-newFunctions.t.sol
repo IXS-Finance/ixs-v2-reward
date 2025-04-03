@@ -35,6 +35,7 @@ contract GaugeTest is BaseTest {
         vm.startPrank(address(owner3));
         VELO.approve(address(escrow), TOKEN_1);
         escrow.createLock(TOKEN_1, MAXTIME);
+        
         vm.stopPrank();
         vm.warp(block.timestamp + 1);
 
@@ -48,6 +49,12 @@ contract GaugeTest is BaseTest {
         deal(address(VELO), address(voter), rewardAmount);
         deal(address(FRAX), address(gauge), amount1);
         deal(address(USDC), address(gauge), amount2);
+        vm.startPrank(address(address(owner)));
+        deal(address(pool), address(owner), TOKEN_1);
+        IERC20(address(pool)).approve(address(gauge), TOKEN_1);
+        IGauge(address(gauge)).deposit(TOKEN_1);
+        vm.stopPrank();
+
         vm.prank(address(voter));
         IERC20(address(VELO)).approve(address(gauge), rewardAmount);
 
@@ -71,10 +78,10 @@ contract GaugeTest is BaseTest {
         assertEq(IERC20(FRAX).balanceOf(address(gauge)), remain1);
         assertEq(IERC20(USDC).balanceOf(address(gauge)), remain2);
 
-        uint256 expectedRatio1 = (remain1 * 1e30) / IERC20(address(gauge.stakingToken())).totalSupply();
+        uint256 expectedRatio1 = (remain1 * 1e30) / IGauge(address(gauge)).totalSupply();
         assertEq(gauge.getIndexRatio(address(FRAX)), expectedRatio1);
 
-        uint256 expectedRatio2 = (remain2 * 1e30) / IERC20(address(gauge.stakingToken())).totalSupply();
+        uint256 expectedRatio2 = (remain2 * 1e30) / IGauge(address(gauge)).totalSupply();
         assertEq(gauge.getIndexRatio(address(USDC)), expectedRatio2);
 
         uint256 expectedRewardRate = rewardAmount / (gauge.periodFinish() - block.timestamp);
@@ -86,6 +93,11 @@ contract GaugeTest is BaseTest {
         deal(address(VELO), address(voter), rewardAmount);
         deal(address(FRAX), address(gauge), amount1);
         deal(address(USDC), address(gauge), amount2);
+        vm.startPrank(address(address(owner)));
+        deal(address(pool), address(owner), TOKEN_1);
+        IERC20(address(pool)).approve(address(gauge), TOKEN_1);
+        IGauge(address(gauge)).deposit(TOKEN_1);
+        vm.stopPrank();
         vm.prank(address(voter));
         IERC20(address(VELO)).approve(address(gauge), rewardAmount);
 
@@ -117,6 +129,11 @@ contract GaugeTest is BaseTest {
         deal(address(VELO), address(voter), rewardAmount);
         deal(address(FRAX), address(gauge), amount1);
         deal(address(USDC), address(gauge), amount2);
+        vm.startPrank(address(address(owner)));
+        deal(address(pool), address(owner), TOKEN_1);
+        IERC20(address(pool)).approve(address(gauge), TOKEN_1);
+        IGauge(address(gauge)).deposit(TOKEN_1);
+        vm.stopPrank();
         vm.prank(address(voter));
         IERC20(address(VELO)).approve(address(gauge), rewardAmount);
 
@@ -195,8 +212,8 @@ contract GaugeTest is BaseTest {
         address user = address(0x6);
         
         uint stakedAmount = 1e10;
-        uint feeAmount1 = 3e16; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 1e10 / 1e12 = 3e16
-        uint feeAmount2 = 6e16; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 1e10 / 1e12 = 6e16
+        uint feeAmount1 = 3e18; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 = 3e18
+        uint feeAmount2 = 6e18; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 = 6e18
 
         // Mock the staking token balance for the user
         deal(address(pool), user, stakedAmount);
@@ -297,7 +314,7 @@ contract GaugeTest is BaseTest {
         assertEq(gauge.userRewardPerTokenPaid(user), gauge.rewardPerTokenStored());
     }
 
-    function testGetRewardsWithoutDeposit() public {
+    function testGetRewardsRevertWithoutDeposit() public {
         address user = address(0x6);
         uint stakedAmount = 1e12;
 
@@ -326,22 +343,8 @@ contract GaugeTest is BaseTest {
 
         // Call notifyRewardAmount as the voter
         vm.prank(address(voter));
+        vm.expectRevert();
         gauge.notifyRewardAmount(rewardAmount);
-
-        // Call getReward as the user
-        vm.prank(user);
-        gauge.getReward(user);
-
-        // Check that the trading fees are claimed and transferred to the user
-        uint256 userToken1Balance = IERC20(address(FRAX)).balanceOf(user);
-        uint256 userToken2Balance = IERC20(address(USDC)).balanceOf(user);
-        assertEq(userToken1Balance, 0);
-        assertEq(userToken2Balance, 0);
-
-        // Check that the claimable amounts are reset
-        assertEq(gauge.supplyIndex(user, address(FRAX)), gauge.getIndexRatio(address(FRAX)));
-        assertEq(gauge.supplyIndex(user, address(USDC)), gauge.getIndexRatio(address(USDC)));
-
     }
     
     function testGetRewardsMultipleDepositors() public {
@@ -354,8 +357,8 @@ contract GaugeTest is BaseTest {
         uint stakedAmount2 = 1e10;  // 1/3 of total stake
         uint stakedAmount3 = 1e10;  // 1/3 of total stake
 
-        uint feeAmount1 = 9e16; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 3e10 / 1e12
-        uint feeAmount2 = 18e16; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 3e10 / 1e12
+        uint feeAmount1 = 3e18; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 3
+        uint feeAmount2 = 6e18; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 3
 
         // Mock the staking token balance for all users
         deal(address(pool), user1, stakedAmount1);
@@ -441,8 +444,8 @@ contract GaugeTest is BaseTest {
         uint stakedAmount2 = 1e10;  // 1/3 of total stake
         uint stakedAmount3 = 1e10;  // 1/3 of total stake
 
-        uint feeAmount1 = 6e16; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 2e10 / 1e12
-        uint feeAmount2 = 12e16; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 2e10 / 1e12
+        uint feeAmount1 = 3e18; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19
+        uint feeAmount2 = 6e18; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19
 
         // Mock the staking token balance for all users
         deal(address(pool), user1, stakedAmount1);
@@ -536,8 +539,8 @@ contract GaugeTest is BaseTest {
         uint stakedAmount2 = 1e10;  // 1/3 of total stake
         uint stakedAmount3 = 1e10;  // 1/3 of total stake
 
-        uint feeAmount1 = 9e16; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 1e10 / 1e12
-        uint feeAmount2 = 18e16; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 1e10 / 1e12
+        uint feeAmount1 = 3e18; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19
+        uint feeAmount2 = 6e18; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19
 
         // Mock the staking token balance for all users
         deal(address(pool), user1, stakedAmount1);
@@ -590,8 +593,8 @@ contract GaugeTest is BaseTest {
         // Calculate expected rewards
         // For first reward: 1/3 of feeAmount1/2 for each user
         // For second reward: 1/2 of feeAmount1/2 for remaining users
-        uint newFeeAmount1 = 6e16; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19 * 2e10 / 1e12
-        uint newFeeAmount2 = 12e16; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19 * 2e10 / 1e12
+        uint newFeeAmount1 = 3e18; // 30% * 1e19 * stakeAmount / totalSupply = 30% * 1e19
+        uint newFeeAmount2 = 6e18; // 30% * 2e19 * stakeAmount / totalSupply = 30% * 2e19
         uint expectedFeeAmount1 = (feeAmount1 / 3) + (newFeeAmount1 / 2);
         uint expectedFeeAmount2 = (feeAmount2 / 3) + (newFeeAmount2 / 2);
 
