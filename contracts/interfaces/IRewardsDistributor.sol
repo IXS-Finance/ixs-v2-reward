@@ -48,6 +48,6 @@ interface IRewardsDistributor {
     // function changeEpochRewards(uint256 _newEpochRewards) external;
 
     /// @notice Deposit IXS into the contract to be used for emissions
-    // function deposit(uint256 _amount) external;
+    function deposit(uint256 _amount) external;
 
 }
