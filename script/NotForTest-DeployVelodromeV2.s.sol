@@ -11,7 +11,7 @@ contract NotForTest_DeployVelodromeV2 is Base {
 
     uint256 public deployPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
     address public deployerAddress = vm.addr(deployPrivateKey);
-    string public constantsFilename = vm.envString("CONSTANTS_FILENAME");
+    string public constantsFilename = vm.envString("DEPLOYMENT_CONSTANTS_FILENAME");
     string public outputFilename = vm.envString("OUTPUT_FILENAME");
     string public jsonConstants;
     string public jsonOutput;
@@ -40,6 +40,7 @@ contract NotForTest_DeployVelodromeV2 is Base {
         _deploySetupBefore();
         _coreSetup();
         _deploySetupAfter();
+        deployGauge();
     }
 
     function _deploySetupBefore() public {
@@ -78,8 +79,6 @@ contract NotForTest_DeployVelodromeV2 is Base {
         factory.setFeeManager(feeManager);
         factory.setVoter(address(voter));
 
-
-
         // finish broadcasting transactions
         vm.stopBroadcast();
 
@@ -97,5 +96,26 @@ contract NotForTest_DeployVelodromeV2 is Base {
         vm.writeJson(vm.serializeAddress("v2", "ManagedRewardsFactory", address(managedRewardsFactory)), path);
         vm.writeJson(vm.serializeAddress("v2", "FactoryRegistry", address(factoryRegistry)), path);
         vm.writeJson(vm.serializeAddress("v2", "VeSugar", address(veSugar)), path);
+    }
+
+    function deployGauge() public {
+        // Load pools from base-sepolia.json
+        address[] memory _pools = abi.decode(vm.parseJson(jsonConstants, ".pools"), (address[]));
+        
+        // Start broadcasting transactions
+        vm.startBroadcast(deployerAddress);
+
+        // Create gauges for each pool
+        for (uint256 i = 0; i < _pools.length; i++) {
+            address gauge = IVoter(address(voter)).createGauge(address(factory), _pools[i]);
+            console.log("Created gauge for pool %s: %s", _pools[i], gauge);
+            
+            // Write gauge address to output file
+            string memory gaugeKey = string.concat("Gauge-", vm.toString(_pools[i]));
+            vm.writeJson(vm.serializeAddress("v2", gaugeKey, gauge), path);
+        }
+
+        // Stop broadcasting transactions
+        vm.stopBroadcast();
     }
 }
