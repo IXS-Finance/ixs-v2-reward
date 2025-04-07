@@ -34,6 +34,7 @@ contract NotForTest_DeployVelodromeV2 is Base {
         feeManager = abi.decode(vm.parseJson(jsonConstants, ".feeManager"), (address));
         emergencyCouncil = abi.decode(vm.parseJson(jsonConstants, ".emergencyCouncil"), (address));
         vault = abi.decode(vm.parseJson(jsonConstants, ".vault"), (address));
+        VELO = Velo(abi.decode(vm.parseJson(jsonConstants, ".VELO"), (address)));
     }
 
     function run() public {
@@ -60,7 +61,7 @@ contract NotForTest_DeployVelodromeV2 is Base {
 
         // deploy VELO
         // VELO = new Velo();
-        VELO = Velo(0x949546713004ee02537292b1F41046f705909191);
+        // VELO = Velo(0x949546713004ee02537292b1F41046f705909191);
 
         tokens.push(address(VELO));
     }
