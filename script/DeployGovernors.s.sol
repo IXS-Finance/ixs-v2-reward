@@ -19,7 +19,7 @@ contract DeployGovernors is Script {
     IVoter public voter;
     VotingEscrow public escrow;
     Forwarder public forwarder;
-    Minter public minter;
+    RewardsDistributor public minter;
     VeloGovernor public governor;
     EpochGovernor public epochGovernor;
 
@@ -34,7 +34,7 @@ contract DeployGovernors is Script {
         escrow = VotingEscrow(abi.decode(vm.parseJson(jsonConstants, ".current.VotingEscrow"), (address)));
         voter = IVoter(abi.decode(vm.parseJson(jsonConstants, ".current.Voter"), (address)));
         forwarder = Forwarder(abi.decode(vm.parseJson(jsonConstants, ".current.Forwarder"), (address)));
-        minter = Minter(abi.decode(vm.parseJson(jsonConstants, ".current.Minter"), (address)));
+        minter = RewardsDistributor(abi.decode(vm.parseJson(jsonConstants, ".current.Minter"), (address)));
 
         require(address(escrow) != address(0)); // sanity check for constants file fillled out correctly
 
