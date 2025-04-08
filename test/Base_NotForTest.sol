@@ -76,6 +76,7 @@ abstract contract Base is Script, Test {
     address public poolFees;
 
     address veSugar;
+    address poolFactory;
 
     function _coreSetup() public {
         deployFactories();
@@ -103,14 +104,12 @@ abstract contract Base is Script, Test {
     }
 
     function deployFactories() public {
-        implementation = new MockPool();
-        factory = new PoolFactory(address(implementation));
-
         votingRewardsFactory = new VotingRewardsFactory();
         gaugeFactory = new GaugeFactory(vault);
         managedRewardsFactory = new ManagedRewardsFactory();
         factoryRegistry = new FactoryRegistry(
-            address(factory),
+            // address(factory),
+            poolFactory,
             address(votingRewardsFactory),
             address(gaugeFactory),
             address(managedRewardsFactory)
