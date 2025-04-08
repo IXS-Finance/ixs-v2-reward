@@ -39,6 +39,9 @@
     "build": "forge build --skip test",
     "build-test": "forge build",
     "deploy": "forge script script/DeployVelodromeV2.s.sol:DeployVelodromeV2 --broadcast --slow --rpc-url baseSepolia  --verify -vvvv --private-key",
-    "deploy-notTest": "forge script script/NotForTest-DeployVelodromeV2.s.sol:NotForTest_DeployVelodromeV2 --broadcast --slow --rpc-url baseSepolia  --verify -vvvv --private-key"
+    "deploy-notTest": "forge script script/NotForTest-DeployVelodromeV2.s.sol:NotForTest_DeployVelodromeV2 --broadcast --slow --rpc-url baseSepolia --verify -vvvv --private-key",
+    "test": "forge test --no-match-contract FullFlow",
+    "test-fork": "forge test --fork-url baseSepolia test/e2e/Full.t.sol",
+    "deploy-gauges": "forge script script/BalancerDeployGaugesAndPoolsV2.s.sol:DeployGauges --broadcast --slow --rpc-url baseSepolia --verify -vvvv --private-key"
   }
 }
