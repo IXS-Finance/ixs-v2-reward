@@ -10,12 +10,12 @@ contract DeployGauges is Script {
 
     uint256 public deployPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
     address public deployerAddress = vm.addr(deployPrivateKey);
-    string public constantsFilename = vm.envString("CONSTANTS_FILENAME");
+    string public constantsFilename = vm.envString("DEPLOYMENT_CONSTANTS_FILENAME");
     string public outputFilename = vm.envString("OUTPUT_FILENAME");
     string public jsonConstants;
     string public jsonOutput;
 
-    PoolFactory public factory;
+    // PoolFactory public factory;
     Voter public voter;
     address public VELO;
 
@@ -42,14 +42,14 @@ contract DeployGauges is Script {
 
         // load in vars
         jsonConstants = vm.readFile(path);
-        address[] memory pools = abi.decode(jsonConstants.parseRaw(".poolsV2"), (address[]));
+        address[] memory pools = abi.decode(jsonConstants.parseRaw(".pools"), (address[]));
 
         path = string.concat(basePath, "output/DeployVelodromeV2-");
         path = string.concat(path, outputFilename);
         jsonOutput = vm.readFile(path);
-        factory = PoolFactory(abi.decode(jsonOutput.parseRaw(".PoolFactory"), (address)));
+        address factory = abi.decode(jsonConstants.parseRaw(".PoolFactory"), (address));
+
         voter = Voter(abi.decode(jsonOutput.parseRaw(".Voter"), (address)));
-        VELO = abi.decode(jsonOutput.parseRaw(".VELO"), (address));
 
         vm.startBroadcast(deployerAddress);
 
