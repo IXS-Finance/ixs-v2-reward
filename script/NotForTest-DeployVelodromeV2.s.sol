@@ -11,7 +11,7 @@ contract NotForTest_DeployVelodromeV2 is Base {
 
     uint256 public deployPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
     address public deployerAddress = vm.addr(deployPrivateKey);
-    string public constantsFilename = vm.envString("CONSTANTS_FILENAME");
+    string public constantsFilename = vm.envString("DEPLOYMENT_CONSTANTS_FILENAME");
     string public outputFilename = vm.envString("OUTPUT_FILENAME");
     string public jsonConstants;
     string public jsonOutput;
@@ -34,12 +34,15 @@ contract NotForTest_DeployVelodromeV2 is Base {
         feeManager = abi.decode(vm.parseJson(jsonConstants, ".feeManager"), (address));
         emergencyCouncil = abi.decode(vm.parseJson(jsonConstants, ".emergencyCouncil"), (address));
         vault = abi.decode(vm.parseJson(jsonConstants, ".vault"), (address));
+        VELO = Velo(abi.decode(vm.parseJson(jsonConstants, ".VELO"), (address)));
+        poolFactory = abi.decode(vm.parseJson(jsonConstants, ".PoolFactory"), (address));
     }
 
     function run() public {
         _deploySetupBefore();
         _coreSetup();
         _deploySetupAfter();
+        deployGauge();
     }
 
     function _deploySetupBefore() public {
@@ -57,10 +60,6 @@ contract NotForTest_DeployVelodromeV2 is Base {
         // start broadcasting transactions
         vm.startBroadcast(deployerAddress);
 
-        // deploy VELO
-        // VELO = new Velo();
-        VELO = Velo(0x949546713004ee02537292b1F41046f705909191);
-
         tokens.push(address(VELO));
     }
 
@@ -68,17 +67,15 @@ contract NotForTest_DeployVelodromeV2 is Base {
         // Set protocol state to team
         escrow.setTeam(team);
         minter.setTeam(team);
-        factory.setPauser(team);
+        // factory.setPauser(team);
         voter.setEmergencyCouncil(emergencyCouncil);
         voter.setEpochGovernor(team);
         voter.setGovernor(team);
         factoryRegistry.transferOwnership(team);
 
         // Set contract vars
-        factory.setFeeManager(feeManager);
-        factory.setVoter(address(voter));
-
-
+        // factory.setFeeManager(feeManager);
+        // factory.setVoter(address(voter));
 
         // finish broadcasting transactions
         vm.stopBroadcast();
@@ -91,11 +88,31 @@ contract NotForTest_DeployVelodromeV2 is Base {
         vm.writeJson(vm.serializeAddress("v2", "Distributor", address(minter)), path);
         vm.writeJson(vm.serializeAddress("v2", "Voter", address(voter)), path);
         // vm.writeJson(vm.serializeAddress("v2", "Minter", address(distributor)), path);
-        vm.writeJson(vm.serializeAddress("v2", "PoolFactory", address(factory)), path);
+        // vm.writeJson(vm.serializeAddress("v2", "PoolFactory", address(factory)), path);
         vm.writeJson(vm.serializeAddress("v2", "VotingRewardsFactory", address(votingRewardsFactory)), path);
         vm.writeJson(vm.serializeAddress("v2", "GaugeFactory", address(gaugeFactory)), path);
         vm.writeJson(vm.serializeAddress("v2", "ManagedRewardsFactory", address(managedRewardsFactory)), path);
         vm.writeJson(vm.serializeAddress("v2", "FactoryRegistry", address(factoryRegistry)), path);
         vm.writeJson(vm.serializeAddress("v2", "VeSugar", address(veSugar)), path);
+    }
+    function deployGauge() public {
+        // Load pools from base-sepolia.json
+        address[] memory _pools = abi.decode(vm.parseJson(jsonConstants, ".pools"), (address[]));
+
+        // Start broadcasting transactions
+        vm.startBroadcast(deployerAddress);
+
+        // Create gauges for each pool
+        for (uint256 i = 0; i < _pools.length; i++) {
+            address gauge = IVoter(address(voter)).createGauge(address(poolFactory), _pools[i]);
+            console.log("Created gauge for pool %s: %s", _pools[i], gauge);
+
+            // Write gauge address to output file
+            string memory gaugeKey = string.concat("Gauge-", vm.toString(_pools[i]));
+            vm.writeJson(vm.serializeAddress("v2", gaugeKey, gauge), path);
+        }
+
+        // Stop broadcasting transactions
+        vm.stopBroadcast();
     }
 }
