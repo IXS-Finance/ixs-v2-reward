@@ -306,4 +306,34 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         return indexRatio[_token];
     }
 
+    function _earnedTradingFee(
+        address _recipient,
+        address _token
+    ) internal view returns(uint256 tradingFee){
+        uint256 _supplied = balanceOf[_recipient]; // get LP balance of `recipient`
+        uint256 _indexRatio = indexRatio[_token]; // get global index for accumulated fees
+
+        if (_supplied > 0) {
+            uint256 _supplyIndex = supplyIndex[_recipient][_token]; // get last adjusted index for _recipient
+            uint256 _index = _indexRatio; // get global index for accumulated fees
+            uint256 _delta0 = _index - _supplyIndex; // see if there is any difference that need to be accrued
+            if (_delta0 > 0) {
+                uint256 _share = (_supplied * _delta0) / 1e30; // add accrued difference for each supplied token
+                tradingFee = claimable[_recipient][_token] +_share;
+            }
+        }
+    }
+
+    /* @dev returns the amount of trading fees earned by a user
+     * @param _recipient address of the user
+     * @param _tokens array of token addresses
+     * @return tradingFees array of trading fees earned for each token
+     */
+    function earnedTradingFee(address _recipient, address[] memory _tokens) external view returns (uint256[] memory tradingFees) {
+        uint256 length = _tokens.length;
+        tradingFees = new uint256[](length);
+        for (uint256 i = 0; i < length; i++) {
+            tradingFees[i] = _earnedTradingFee(_recipient, _tokens[i]);
+        }
+    }
 }
