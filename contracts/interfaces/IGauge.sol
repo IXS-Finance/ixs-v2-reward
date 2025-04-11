@@ -109,4 +109,7 @@ interface IGauge {
     ///      Assumes gauge reward tokens is 18 decimals.
     ///      If not 18 decimals, rewardRate may have rounding issues.
     function notifyRewardWithoutClaim(uint256 amount) external;
+
+    function earnedTradingFee(address _recipient, address[] memory _tokens) external view returns (uint256[] memory tradingFees);
+
 }
