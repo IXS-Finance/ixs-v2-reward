@@ -106,7 +106,7 @@ contract RewardSugarTest is BaseTest {
 
         address[] memory _pools = new address[](1);
         _pools[0] = address(pool);
-        ( ,uint256[][] memory feeVotingReward1,) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewardsForOneTokenIdAndMultipleGauges(_pools, 1);
+        ( ,uint256[][] memory feeVotingReward1,) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewardsForTokenIdAndPools(_pools, 1);
 
         (, uint256[] memory feeVotingReward2,) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewards(address(pool), 1);
 

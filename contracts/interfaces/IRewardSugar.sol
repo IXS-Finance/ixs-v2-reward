@@ -47,7 +47,7 @@ interface IRewardSugar {
      * @return fees The amounts of the fees earned
      * @return bribes The amounts of the bribes earned
      */
-    function getFeeAndBribeVotingRewardsForOneTokenIdAndMultiplePools(
+    function getFeeAndBribeVotingRewardsForTokenIdAndPools(
         address[] calldata _pools,
         uint256 _tokenId
     ) external view returns (address[][] memory tokens, uint256[][] memory fees, uint256[][] memory bribes);
