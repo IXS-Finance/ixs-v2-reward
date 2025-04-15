@@ -119,7 +119,7 @@ contract RewardSugar is IRewardSugar {
         tokens = _getPoolTokens(_pool);
     }
 
-    function getFeeAndBribeVotingRewardsForOneTokenIdAndMultipleGauges(
+    function getFeeAndBribeVotingRewardsForOneTokenIdAndMultiplePools(
         address[] calldata _pools,
         uint256 _tokenId
     ) external view returns (address[][] memory tokens, uint[][] memory feeRewards, uint[][] memory bribeRewards) {
