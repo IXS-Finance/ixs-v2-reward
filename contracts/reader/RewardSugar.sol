@@ -34,7 +34,7 @@ contract RewardSugar is IRewardSugar {
         uint256 _tokenId,
         address _votingReward
     ) internal view returns (uint256[] memory) {
-        require(_pool != address(0), "Invalid gauge address");
+        require(_pool != address(0), "Invalid pool address");
         bytes32 poolId = IBalancerPool(_pool).getPoolId();
         (IERC20[] memory poolTokens,,) = vault.getPoolTokens(poolId);
 
@@ -72,10 +72,10 @@ contract RewardSugar is IRewardSugar {
         address _pool,
         uint256 _tokenId
     ) internal view returns (uint[] memory feeRewards, uint[] memory bribeRewards) {
-        require(_pool != address(0), "Invalid gauge address");
+        require(_pool != address(0), "Invalid pool address");
 
         address _gauge = IVoter(voter).gauges(_pool);
-        require(_gauge != address(0), "Not a valid gauge");
+        require(_gauge != address(0), "Invalid gauge address");
         
         address feeVotingReward = voter.gaugeToFees(_gauge);
         address bribeVotingReward = voter.gaugeToBribe(_gauge);
@@ -88,10 +88,10 @@ contract RewardSugar is IRewardSugar {
         address _pool,
         uint256 _tokenId
     ) external view returns (address[] memory tokens, uint[] memory rewards) {
-        require(_pool != address(0), "Invalid gauge address");
+        require(_pool != address(0), "Invalid pool address");
 
         address _gauge = IVoter(voter).gauges(_pool);
-        require(_gauge != address(0), "Not a valid gauge");
+        require(_gauge != address(0), "Invalid gauge address");
         address feeVotingReward = voter.gaugeToFees(_gauge);
         rewards = _getEarned(_pool, _tokenId, feeVotingReward);
         tokens = _getPoolTokens(_pool);
@@ -101,10 +101,10 @@ contract RewardSugar is IRewardSugar {
         address _pool,
         uint256 _tokenId
     ) external view returns (address[] memory tokens, uint[] memory rewards) {
-        require(_pool != address(0), "Invalid gauge address");
+        require(_pool != address(0), "Invalid pool address");
 
         address _gauge = IVoter(voter).gauges(_pool);
-        require(_gauge != address(0), "Not a valid gauge");
+        require(_gauge != address(0), "Invalid gauge address");
         address bribeVotingReward = voter.gaugeToBribe(_gauge);
 
         rewards = _getEarned(_pool, _tokenId, bribeVotingReward);
