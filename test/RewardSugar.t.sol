@@ -102,13 +102,13 @@ contract RewardSugarTest is BaseTest {
         uint feesBalanceFRAX = IERC20(FRAX).balanceOf(address(feesVotingReward));
         uint feesBalanceUSDC = IERC20(USDC).balanceOf(address(feesVotingReward));
 
-        ( ,uint256[] memory feeVotingReward) = IRewardSugar(rewardSugar).getFeeVotingRewards(address(gauge), 1);
+        ( ,uint256[] memory feeVotingReward) = IRewardSugar(rewardSugar).getFeeVotingRewards(address(pool), 1);
 
-        address[] memory gauges = new address[](1);
-        gauges[0] = address(gauge);
-        ( ,uint256[][] memory feeVotingReward1,) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewardsForOneTokenIdAndMultipleGauges(gauges, 1);
+        address[] memory _pools = new address[](1);
+        _pools[0] = address(pool);
+        ( ,uint256[][] memory feeVotingReward1,) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewardsForOneTokenIdAndMultipleGauges(_pools, 1);
 
-        (, uint256[] memory feeVotingReward2,) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewards(address(gauge), 1);
+        (, uint256[] memory feeVotingReward2,) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewards(address(pool), 1);
 
         assertEq(feeVotingReward[0], feesBalanceUSDC);
         assertEq(feeVotingReward[1], feesBalanceFRAX);
