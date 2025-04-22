@@ -12,13 +12,13 @@ import {IReward} from "../interfaces/IReward.sol";
 import {IRewardSugar} from "../interfaces/IRewardSugar.sol";
 import {Reward} from "../rewards/Reward.sol";
 
+
 /**
- * @title VotingRewardHelper
+ * @title RewardHelper
  * @notice Helper contract to fetch voting rewards (fees and bribes)
  */
 contract RewardSugar is IRewardSugar { 
     IVoter public immutable voter;
-
     constructor(address _voter) {
         require(_voter != address(0), "Invalid voter address");
         
@@ -46,22 +46,6 @@ contract RewardSugar is IRewardSugar {
             
         }
         return (tokens, rewards);
-    }
-
-    function _getRewardTokens(
-        address _votingReward
-    ) internal view returns (address[] memory) {
-        // Get reward tokens
-         uint256 totalLength = IReward(_votingReward).rewardsListLength();
-        require(totalLength > 0, "No rewards found");
-
-        // Initialize rewards array
-        address[] memory tokens = new address[](totalLength);
-        for (uint256 i = 0; i < totalLength; i++) {
-            address token = address(Reward(_votingReward).rewards(i));
-            tokens[i] = token;
-        }
-        return tokens;
     }
 
     function getFeeVotingRewards(
@@ -121,7 +105,6 @@ contract RewardSugar is IRewardSugar {
             address bribeVotingReward = voter.gaugeToBribe(_gauge);
             (feeTokens[i], feeRewards[i]) = _getEarned(_tokenId, feeVotingReward);
             (bribeTokens[i], bribeRewards[i]) = _getEarned(_tokenId, bribeVotingReward);
-
         }
     }
 

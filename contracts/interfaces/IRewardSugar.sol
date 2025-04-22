@@ -44,7 +44,7 @@ interface IRewardSugar {
      * @notice Get the earned fees and bribes for multiple pools and tokenId
      * @param _pools The addresses of the pools
      * @param _tokenId The lock Id of the user
-     * @return tokens The addresses of the fee reward tokens in the pool
+     * @return feeTokens The addresses of the fee reward tokens in the pool
      * @return bribeTokens The addresses of the bribe reward tokens in the pool
      * @return fees The amounts of the fees earned
      * @return bribes The amounts of the bribes earned
