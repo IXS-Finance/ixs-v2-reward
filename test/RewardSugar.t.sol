@@ -106,10 +106,14 @@ contract RewardSugarTest is BaseTest {
 
         address[] memory _pools = new address[](1);
         _pools[0] = address(pool);
-        ( ,uint256[][] memory feeVotingReward1,) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewardsForTokenIdAndPools(_pools, 1);
+        (address[][] memory feeTokens1, ,uint256[][] memory feeVotingReward1, ) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewardsForTokenIdAndPools(_pools, 1);
 
-        (, uint256[] memory feeVotingReward2,) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewards(address(pool), 1);
+        (address[] memory feeTokens2, ,uint256[] memory feeVotingReward2, ) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewards(address(pool), 1);
 
+        assertEq(feeTokens1[0][0], address(FRAX));
+        assertEq(feeTokens1[0][1], address(USDC));
+        assertEq(feeTokens2[0], address(FRAX));
+        assertEq(feeTokens2[1], address(USDC));
         assertEq(feeVotingReward[0], feesBalanceUSDC);
         assertEq(feeVotingReward[1], feesBalanceFRAX);
         assertEq(feeVotingReward1[0][0], feesBalanceUSDC);

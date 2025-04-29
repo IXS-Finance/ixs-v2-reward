@@ -72,7 +72,6 @@ contract RewardsDistributor is IRewardsDistributor {
     }
 
     function deposit(uint amount) external {
-        if (msg.sender != team) revert NotTeam();
         if (amount == 0) revert ZeroAmount();
         ixs.safeTransferFrom(msg.sender, address(this), amount);
         availableDeposit += amount;
