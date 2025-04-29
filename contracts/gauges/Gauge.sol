@@ -36,7 +36,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     bool public immutable isPool;
 
     // uint256 internal constant DURATION = 7 days; // rewards are released over 7 days
-    uint256 internal constant DURATION = 14 days; // rewards are released over 7 days
+    uint256 internal constant DURATION = 2 days; // rewards are released over 7 days
     uint256 internal constant PRECISION = 10 ** 18;
 
     /// @inheritdoc IGauge
@@ -295,6 +295,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     ) internal {
         // Only update on this pool if there is a fee
         if (_feeAmount == 0) return;
+        require(totalSupply > 0, "No supply");
         uint256 _ratio = (_feeAmount * 1e30) / totalSupply; // 1e30 adjustment is removed during claim
         if (_ratio > 0) {
             indexRatio[_token] += _ratio;
