@@ -546,7 +546,7 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     // uint256 internal constant WEEK = 1 weeks;
-    uint256 internal constant WEEK = 2 weeks;
+    uint256 internal constant WEEK = 14 days;
     uint256 internal constant MAXTIME = 4 * 365 * 86400;
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
     uint256 internal constant MULTIPLIER = 1 ether;
@@ -1247,5 +1247,49 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IVotingEscrow
     function CLOCK_MODE() external pure returns (string memory) {
         return "mode=timestamp";
+    }
+
+    function _burnFromVoter(uint256 _tokenId) internal {
+        address owner = _ownerOf(_tokenId);
+
+        // Clear approval
+        delete idToApprovals[_tokenId];
+        // Update voting checkpoints
+        _checkpointDelegator(_tokenId, 0, address(0));
+        // Remove token
+        _removeTokenFrom(owner, _tokenId);
+        emit Transfer(owner, address(0), _tokenId);
+    }
+
+    function withdrawFromVoter(uint256 _tokenId) external nonReentrant {
+        address sender = _msgSender();
+        if (sender != voter) revert NotVoter();
+        if (voted[_tokenId]) revert AlreadyVoted();
+        if (escrowType[_tokenId] != EscrowType.NORMAL) revert NotNormalNFT();
+
+        LockedBalance memory oldLocked = _locked[_tokenId];
+        if (oldLocked.isPermanent) revert PermanentLock();
+        if (block.timestamp < oldLocked.end) revert LockNotExpired();
+        uint256 value = oldLocked.amount.toUint256();
+        address tokenOwner = _ownerOf(_tokenId);
+
+        // Burn the NFT
+        _burnFromVoter(_tokenId);
+        
+        _locked[_tokenId] = LockedBalance(0, 0, false);
+        uint256 supplyBefore = supply;
+        supply = supplyBefore - value;
+
+        // oldLocked can have either expired <= timestamp or zero end
+        // oldLocked has only 0 end
+        // Both can have >= 0 amount
+        _checkpoint(_tokenId, oldLocked, LockedBalance(0, 0, false));
+
+        // IERC20(token).safeTransfer(sender, value);
+        IERC20(token).safeTransfer(tokenOwner, value);
+
+        // emit Withdraw(sender, _tokenId, value, block.timestamp);
+        emit Withdraw(tokenOwner, _tokenId, value, block.timestamp);
+        emit Supply(supplyBefore, supplyBefore - value);
     }
 }
