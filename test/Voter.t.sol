@@ -1116,4 +1116,26 @@ contract VoterTest is BaseTest {
         weights[1] = 1;
         voter.vote(tokenId, pools, weights);
     }
+
+    function testWithdrawVeNFT() public {
+        skip(1 hours + 1);
+        VELO.approve(address(escrow), TOKEN_1);
+        uint256 tokenId = escrow.createLock(TOKEN_1, WEEK);
+
+        // vote
+        address[] memory pools = new address[](2);
+        pools[0] = address(pool);
+        pools[1] = address(pool2);
+        uint256[] memory weights = new uint256[](2);
+        weights[0] = 1;
+        weights[1] = 2;
+
+        voter.vote(tokenId, pools, weights);
+
+        skipToNextEpoch(1 hours + 1);
+        voter.withdrawVeNFT(tokenId);
+        assertEq(escrow.balanceOfNFT(tokenId), 0);
+        assertEq(escrow.ownerOf(tokenId), address(0x0));
+        assertEq(escrow.voted(tokenId), false);
+    }
 }
