@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/StdJson.sol";
 import "../test/Base_NotForTest.sol";
+import "../contracts/reader/RewardSugar.sol";
 
 contract NotForTest_DeployVelodromeV2 is Base {
     using stdJson for string;
@@ -39,10 +40,12 @@ contract NotForTest_DeployVelodromeV2 is Base {
     }
 
     function run() public {
-        _deploySetupBefore();
-        _coreSetup();
-        _deploySetupAfter();
-        deployGauge();
+        // _deploySetupBefore();
+        // _coreSetup();
+        // _deploySetupAfter();
+        // deployGauge();
+        // deployRewardSugar();
+        deployVeSugar();
     }
 
     function _deploySetupBefore() public {
@@ -85,7 +88,7 @@ contract NotForTest_DeployVelodromeV2 is Base {
         vm.writeJson(vm.serializeAddress("v2", "VotingEscrow", address(escrow)), path);
         vm.writeJson(vm.serializeAddress("v2", "Forwarder", address(forwarder)), path);
         vm.writeJson(vm.serializeAddress("v2", "ArtProxy", address(artProxy)), path);
-        vm.writeJson(vm.serializeAddress("v2", "Distributor", address(minter)), path);
+        vm.writeJson(vm.serializeAddress("v2", "RewardsDistributor", address(minter)), path);
         vm.writeJson(vm.serializeAddress("v2", "Voter", address(voter)), path);
         // vm.writeJson(vm.serializeAddress("v2", "Minter", address(distributor)), path);
         // vm.writeJson(vm.serializeAddress("v2", "PoolFactory", address(factory)), path);
@@ -113,6 +116,26 @@ contract NotForTest_DeployVelodromeV2 is Base {
         }
 
         // Stop broadcasting transactions
+        vm.stopBroadcast();
+    }
+
+    function deployRewardSugar() public {
+        vm.startBroadcast(deployerAddress);
+        
+        address rewardSugar = address(new RewardSugar(address(voter)));
+        console.log("RewardSugar deployed at: %s", rewardSugar);
+        vm.writeJson(vm.serializeAddress("v2", "RewardSugar", address(rewardSugar)), path);
+
+        vm.stopBroadcast();
+    }
+
+    function deployVeSugar() public {
+        vm.startBroadcast(deployerAddress);
+
+        // Deploy VeSugar contract
+        veSugar = address(new VeSugar(address(voter)));
+        vm.writeJson(vm.serializeAddress("v2", "VeSugar", address(veSugar)), path);
+
         vm.stopBroadcast();
     }
 }
