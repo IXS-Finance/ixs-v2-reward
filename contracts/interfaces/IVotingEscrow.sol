@@ -526,7 +526,4 @@ interface IVotingEscrow is IVotes, IERC4906, IERC6372, IERC721Metadata {
 
     /// @inheritdoc IERC6372
     function CLOCK_MODE() external view returns (string memory);
-
-    function withdrawFromVoter(uint256 _tokenId) external;
-
 }

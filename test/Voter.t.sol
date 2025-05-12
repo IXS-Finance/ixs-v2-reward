@@ -1134,6 +1134,8 @@ contract VoterTest is BaseTest {
 
         skipToNextEpoch(1 hours + 1);
         voter.withdrawVeNFT(tokenId);
+        vm.expectRevert(IVotingEscrow.NotApprovedOrOwner.selector);
+        VotingEscrow(escrow).withdraw(tokenId);
         assertEq(escrow.balanceOfNFT(tokenId), 0);
         assertEq(escrow.ownerOf(tokenId), address(0x0));
         assertEq(escrow.voted(tokenId), false);

@@ -541,6 +541,6 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         if (!IVotingEscrow(ve).isApprovedOrOwner(_msgSender(), _tokenId)) revert NotApprovedOrOwner();
         _reset(_tokenId);
 
-        IVotingEscrow(ve).withdrawFromVoter(_tokenId);
+        IVotingEscrow(ve).withdraw(_tokenId);
     }
 }
