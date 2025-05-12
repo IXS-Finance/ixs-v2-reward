@@ -36,7 +36,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     bool public immutable isPool;
 
     // uint256 internal constant DURATION = 7 days; // rewards are released over 7 days
-    uint256 internal constant DURATION = 2 days; // rewards are released over 7 days
+    uint256 internal constant DURATION = 14 days; // rewards are released over 7 days
     uint256 internal constant PRECISION = 10 ** 18;
 
     /// @inheritdoc IGauge
