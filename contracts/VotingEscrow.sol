@@ -530,7 +530,6 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
     function _burn(uint256 _tokenId) internal {
         address sender = _msgSender();
         if(sender != voter && !_isApprovedOrOwner(sender, _tokenId)) revert NotApprovedOrOwner();
-        // if (!_isApprovedOrOwner(sender, _tokenId)) revert NotApprovedOrOwner();
         address owner = _ownerOf(_tokenId);
 
         // Clear approval
