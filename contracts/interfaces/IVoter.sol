@@ -26,6 +26,9 @@ interface IVoter {
     error UnequalLengths();
     error ZeroBalance();
     error ZeroAddress();
+    error InvalidFeeForVe();
+    error InvalidPeriod();
+    error NotDistributor();
 
     event GaugeCreated(
         address indexed poolFactory,
@@ -59,6 +62,8 @@ interface IVoter {
     event DistributeReward(address indexed sender, address indexed gauge, uint256 amount);
     event WhitelistToken(address indexed whitelister, address indexed token, bool indexed _bool);
     event WhitelistNFT(address indexed whitelister, uint256 indexed tokenId, bool indexed _bool);
+    event RewardsDistributorChanged(address indexed minter);
+    event PeriodChanged(uint256 indexed period);
 
     /// @notice Store trusted forwarder address to pass into factories
     function forwarder() external view returns (address);
@@ -70,7 +75,7 @@ interface IVoter {
     function factoryRegistry() external view returns (address);
 
     /// @notice Address of Minter.sol
-    function minter() external view returns (address);
+    function distributor() external view returns (address);
 
     /// @notice Standard OZ IGovernor using ve for vote weights.
     function governor() external view returns (address);
@@ -265,4 +270,14 @@ interface IVoter {
     /// @dev Update claims to emissions for single gauge
     /// @param _gauge .
     function updateFor(address _gauge) external;
+
+    /// @notice Set new fee rate
+    /// @param _feeForVe .
+    function changeFeeForVe(uint256 _feeForVe) external;
+
+    function feeForVe() external view returns (uint256);
+    
+    function vestingPeriod() external view returns (uint256);
+
+    function poolVote(uint256 tokenId, uint256 index) external view returns (address);
 }

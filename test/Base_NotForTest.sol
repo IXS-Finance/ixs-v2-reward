@@ -7,7 +7,6 @@ import {GaugeFactory} from "contracts/factories/GaugeFactory.sol";
 import {PoolFactory, IPoolFactory} from "contracts/factories/PoolFactory.sol";
 import {IFactoryRegistry, FactoryRegistry} from "contracts/factories/FactoryRegistry.sol";
 import {Pool} from "contracts/Pool.sol";
-// import {IMinter, Minter} from "contracts/Minter.sol";
 import {IReward, Reward} from "contracts/rewards/Reward.sol";
 import {FeesVotingReward} from "contracts/rewards/FeesVotingReward.sol";
 import {BribeVotingReward} from "contracts/rewards/BribeVotingReward.sol";
@@ -32,6 +31,7 @@ import {Forwarder} from "@opengsn/contracts/src/forwarder/Forwarder.sol";
 import {MockVault} from "test/utils/MockVault.sol";
 import {MockPoolFees} from "test/utils/MockPoolFees.sol";
 import {MockPool} from "test/utils/MockPool.sol";
+import {VeSugar} from "../contracts/reader/VeSugar.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/Test.sol";
@@ -75,11 +75,10 @@ abstract contract Base is Script, Test {
     address public vault;// = 0x05E7A5e0eBd927F814C80eFAf0213667A5b288C0;
     address public poolFees;
 
+    address veSugar;
+    address poolFactory;
+
     function _coreSetup() public {
-        // vault = vault == address(0) ? address(new MockVault()) : vault;
-        poolFees = address(new MockPoolFees());
-        vault = address(new MockVault(poolFees));
-        MockPoolFees(poolFees).setVault(vault);
         deployFactories();
 
         forwarder = new Forwarder();
@@ -90,41 +89,27 @@ abstract contract Base is Script, Test {
 
         // Setup voter and distributor
         // distributor = new RewardsDistributor(address(escrow));
-        uint period = 7 days;
+        uint period = 14 days;
         voter = new Voter(address(forwarder), address(escrow), address(factoryRegistry), vault, period);
+
         // minter = new RewardsDistributor(address(voter), address(escrow));
         minter = new RewardsDistributor(address(voter));
-
         escrow.setVoterAndDistributor(address(voter), address(minter));
         escrow.setAllowedManager(allowedManager);
 
-        // Setup router
-        router = new Router(
-            address(forwarder),
-            address(factoryRegistry),
-            address(factory),
-            address(voter),
-            address(WETH)
-        );
-
-        // Setup minter
-        // minter = new Minter(address(voter), address(escrow), address(distributor));
-        // distributor.setMinter(address(minter));
-        VELO.setMinter(address(minter));
-
         // /// @dev tokens are already set in the respective setupBefore()
         voter.initialize(tokens, address(minter));
+
+        veSugar = address(new VeSugar(address(voter)));
     }
 
     function deployFactories() public {
-        implementation = new MockPool();
-        factory = new PoolFactory(address(implementation));
-
         votingRewardsFactory = new VotingRewardsFactory();
         gaugeFactory = new GaugeFactory(vault);
         managedRewardsFactory = new ManagedRewardsFactory();
         factoryRegistry = new FactoryRegistry(
-            address(factory),
+            // address(factory),
+            poolFactory,
             address(votingRewardsFactory),
             address(gaugeFactory),
             address(managedRewardsFactory)

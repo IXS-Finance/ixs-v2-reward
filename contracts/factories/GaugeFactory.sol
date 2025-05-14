@@ -3,8 +3,14 @@ pragma solidity 0.8.19;
 
 import {IGaugeFactory} from "../interfaces/factories/IGaugeFactory.sol";
 import {Gauge} from "../gauges/Gauge.sol";
+import {IVault} from "../interfaces/IVault.sol";
 
 contract GaugeFactory is IGaugeFactory {
+    IVault public vault;
+
+    constructor(address _vault) {
+        vault = IVault(_vault);
+    }
     function createGauge(
         address _forwarder,
         address _pool,
@@ -12,6 +18,7 @@ contract GaugeFactory is IGaugeFactory {
         address _rewardToken,
         bool isPool
     ) external returns (address gauge) {
-        gauge = address(new Gauge(_forwarder, _pool, _feesVotingReward, _rewardToken, msg.sender, isPool));
+        address _poolFees = address(vault.getPoolFeesCollector());
+        gauge = address(new Gauge(_forwarder, _pool, _feesVotingReward, _rewardToken, msg.sender, isPool, _poolFees));
     }
 }

@@ -12,6 +12,9 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC2771Context} from "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {VelodromeTimeLibrary} from "../libraries/VelodromeTimeLibrary.sol";
+import {IPoolFees} from "../interfaces/IPoolFees.sol";
+import {IBalancerPool} from "../interfaces/IBalancerPool.sol";
+import {IVault} from "../interfaces/IVault.sol";
 
 /// @title Velodrome V2 Gauge
 /// @author veldorome.finance, @figs999, @pegahcarter
@@ -32,7 +35,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IGauge
     bool public immutable isPool;
 
-    uint256 internal constant DURATION = 7 days; // rewards are released over 7 days
+    // uint256 internal constant DURATION = 7 days; // rewards are released over 7 days
+    uint256 internal constant DURATION = 14 days; // rewards are released over 7 days
     uint256 internal constant PRECISION = 10 ** 18;
 
     /// @inheritdoc IGauge
@@ -54,10 +58,16 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IGauge
     mapping(uint256 => uint256) public rewardRateByEpoch;
 
-    /// @inheritdoc IGauge
-    uint256 public fees0;
-    /// @inheritdoc IGauge
-    uint256 public fees1;
+    // uint256 public fees0;
+    // uint256 public fees1;
+    address public poolFees;
+
+    // uint256 public feeForVe;
+    uint256 internal constant BASIC_POINT = 1e4;
+
+    mapping(address => mapping(address => uint256)) public supplyIndex;
+    mapping(address => mapping(address => uint256)) public claimable;
+    mapping(address => uint256) internal indexRatio;
 
     constructor(
         address _forwarder,
@@ -65,7 +75,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         address _feesVotingReward,
         address _rewardToken,
         address _voter,
-        bool _isPool
+        bool _isPool,
+        address _poolFees
     ) ERC2771Context(_forwarder) {
         stakingToken = _stakingToken;
         feesVotingReward = _feesVotingReward;
@@ -73,33 +84,29 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         voter = _voter;
         isPool = _isPool;
         team = IVotingEscrow(IVoter(voter).ve()).team();
+        poolFees = _poolFees;
     }
 
-    function _claimFees() internal returns (uint256 claimed0, uint256 claimed1) {
+    function _claimFees() internal {
         if (!isPool) {
-            return (0, 0);
+            return;
         }
-        (claimed0, claimed1) = IPool(stakingToken).claimFees();
-        if (claimed0 > 0 || claimed1 > 0) {
-            uint256 _fees0 = fees0 + claimed0;
-            uint256 _fees1 = fees1 + claimed1;
-            (address _token0, address _token1) = IPool(stakingToken).tokens();
-            if (_fees0 > DURATION) {
-                fees0 = 0;
-                IERC20(_token0).safeApprove(feesVotingReward, _fees0);
-                IReward(feesVotingReward).notifyRewardAmount(_token0, _fees0);
-            } else {
-                fees0 = _fees0;
+        address[] memory tokens;
+        uint256[] memory claimableAmounts;
+        bytes32 _poolId = IBalancerPool(stakingToken).getPoolId();
+        (tokens, claimableAmounts) = IPoolFees(poolFees).claimPoolTokensFees(_poolId, address(this));
+        uint feeForVe = IVoter(voter).feeForVe();
+        for(uint256 i = 0; i < tokens.length; i++) {
+            IERC20 token = IERC20(tokens[i]);
+            uint256 claimableAmount = claimableAmounts[i];
+            if (claimableAmount > 0) {
+                uint _share = (claimableAmount * feeForVe) / BASIC_POINT;
+                uint remain = claimableAmount - _share;
+                token.safeApprove(feesVotingReward, _share);
+                IReward(feesVotingReward).notifyRewardAmount(address(token), _share);
+                _updateRatio(tokens[i], remain);
+                emit ClaimPoolFees(_msgSender(), address(token), _share);
             }
-            if (_fees1 > DURATION) {
-                fees1 = 0;
-                IERC20(_token1).safeApprove(feesVotingReward, _fees1);
-                IReward(feesVotingReward).notifyRewardAmount(_token1, _fees1);
-            } else {
-                fees1 = _fees1;
-            }
-
-            emit ClaimFees(_msgSender(), claimed0, claimed1);
         }
     }
 
@@ -131,6 +138,23 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             rewards[_account] = 0;
             IERC20(rewardToken).safeTransfer(_account, reward);
             emit ClaimRewards(_account, reward);
+        }
+
+        //claim trading fees
+        address _vault = IPoolFees(poolFees).vault();
+        IERC20[] memory tokens;
+        bytes32 _poolId = IBalancerPool(stakingToken).getPoolId();
+        if(_poolId == bytes32(0)) return;
+        (tokens, , ) = IVault(_vault).getPoolTokens(_poolId);
+        for(uint256 i = 0; i < tokens.length; i++) {
+            _updateSupplyIndex(_account, address(tokens[i]));
+            IERC20 token = tokens[i];
+            uint256 claimableAmount = claimable[_account][address(token)];
+            if (claimableAmount > 0) {
+                claimable[_account][address(token)] = 0;
+                token.safeTransfer(_account, claimableAmount);
+                emit ClaimTradingFees(address(token), _account, claimableAmount);
+            }
         }
     }
 
@@ -209,11 +233,11 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         if (_amount == 0) revert ZeroAmount();
         _notifyRewardAmount(sender, _amount);
     }
-
     function _notifyRewardAmount(address sender, uint256 _amount) internal {
         rewardPerTokenStored = rewardPerToken();
         uint256 timestamp = block.timestamp;
-        uint256 timeUntilNext = VelodromeTimeLibrary.epochNext(timestamp) - timestamp;
+        uint256 currentPeriod = IVoter(voter).vestingPeriod();
+        uint256 timeUntilNext = VelodromeTimeLibrary.periodNext(timestamp, currentPeriod) - timestamp;
 
         if (timestamp >= periodFinish) {
             IERC20(rewardToken).safeTransferFrom(sender, address(this), _amount);
@@ -224,8 +248,8 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             IERC20(rewardToken).safeTransferFrom(sender, address(this), _amount);
             rewardRate = (_amount + _leftover) / timeUntilNext;
         }
-        rewardRateByEpoch[VelodromeTimeLibrary.epochStart(timestamp)] = rewardRate;
         if (rewardRate == 0) revert ZeroRewardRate();
+        rewardRateByEpoch[VelodromeTimeLibrary.periodStart(timestamp, currentPeriod)] = rewardRate;
 
         // Ensure the provided reward amount is not more than the balance in the contract.
         // This keeps the reward rate in the right range, preventing overflows due to
@@ -237,5 +261,79 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         lastUpdateTime = timestamp;
         periodFinish = timestamp + timeUntilNext;
         emit NotifyReward(sender, _amount);
+    }
+
+    function _updateSupplyIndex(
+        address _recipient,
+        address _token
+    ) internal {
+        uint256 _supplied = balanceOf[_recipient]; // get LP balance of `recipient`
+        uint256 _indexRatio = indexRatio[_token]; // get global index for accumulated fees
+
+        if (_supplied > 0) {
+            uint256 _supplyIndex = supplyIndex[_recipient][_token]; // get last adjusted index for _recipient
+            uint256 _index = _indexRatio; // get global index for accumulated fees
+            supplyIndex[_recipient][_token] = _index; // update user current position to global position
+            uint256 _delta0 = _index - _supplyIndex; // see if there is any difference that need to be accrued
+            if (_delta0 > 0) {
+                uint256 _share = (_supplied * _delta0) / 1e30; // add accrued difference for each supplied token
+                claimable[_recipient][_token] += _share;
+            }
+        } else {
+            supplyIndex[_recipient][_token] = _indexRatio;
+        }
+    }
+
+    /**
+     * @dev update index ratio after each swap
+     * @param _token tokenIn address
+     * @param _feeAmount swapping fee
+     */
+    function _updateRatio(
+        address _token,
+        uint256 _feeAmount
+    ) internal {
+        // Only update on this pool if there is a fee
+        if (_feeAmount == 0) return;
+        uint256 _ratio = (_feeAmount * 1e30) / totalSupply; // 1e30 adjustment is removed during claim
+        if (_ratio > 0) {
+            indexRatio[_token] += _ratio;
+        }
+        emit UpdateRatio(_token, _feeAmount);
+    }
+
+    function getIndexRatio(address _token) external view returns (uint256) {
+        return indexRatio[_token];
+    }
+
+    function _earnedTradingFee(
+        address _recipient,
+        address _token
+    ) internal view returns(uint256 tradingFee){
+        uint256 _supplied = balanceOf[_recipient]; // get LP balance of `recipient`
+        uint256 _indexRatio = indexRatio[_token]; // get global index for accumulated fees
+
+        if (_supplied > 0) {
+            uint256 _supplyIndex = supplyIndex[_recipient][_token]; // get last adjusted index for _recipient
+            uint256 _index = _indexRatio; // get global index for accumulated fees
+            uint256 _delta0 = _index - _supplyIndex; // see if there is any difference that need to be accrued
+            if (_delta0 > 0) {
+                uint256 _share = (_supplied * _delta0) / 1e30; // add accrued difference for each supplied token
+                tradingFee = claimable[_recipient][_token] +_share;
+            }
+        }
+    }
+
+    /* @dev returns the amount of trading fees earned by a user
+     * @param _recipient address of the user
+     * @param _tokens array of token addresses
+     * @return tradingFees array of trading fees earned for each token
+     */
+    function earnedTradingFee(address _recipient, address[] memory _tokens) external view returns (uint256[] memory tradingFees) {
+        uint256 length = _tokens.length;
+        tradingFees = new uint256[](length);
+        for (uint256 i = 0; i < length; i++) {
+            tradingFees[i] = _earnedTradingFee(_recipient, _tokens[i]);
+        }
     }
 }

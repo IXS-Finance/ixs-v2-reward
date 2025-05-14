@@ -5,7 +5,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IVotingRewardsFactory} from "./interfaces/factories/IVotingRewardsFactory.sol";
 import {IGauge} from "./interfaces/IGauge.sol";
 import {IGaugeFactory} from "./interfaces/factories/IGaugeFactory.sol";
-import {IMinter} from "./interfaces/IMinter.sol";
+import {IRewardsDistributor} from "./interfaces/IRewardsDistributor.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IPoolFactory} from "./interfaces/factories/IPoolFactory.sol";
 import {IReward} from "./interfaces/IReward.sol";
@@ -17,6 +17,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC2771Context} from "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {VelodromeTimeLibrary} from "./libraries/VelodromeTimeLibrary.sol";
+import {IVault} from "./interfaces/IVault.sol";
+import {IBalancerPool} from "./interfaces/IBalancerPool.sol";
 
 /// @title Velodrome V2 Voter
 /// @author velodrome.finance, @figs999, @pegahcarter
@@ -33,9 +35,10 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     /// @notice Base token of ve contract
     address internal immutable rewardToken;
     /// @notice Rewards are released over 7 days
-    uint256 internal constant DURATION = 7 days;
+    // uint256 internal constant DURATION = 7 days;
+    uint256 internal constant DURATION = 14 days;
     /// @inheritdoc IVoter
-    address public minter;
+    address public distributor;
     /// @inheritdoc IVoter
     address public governor;
     /// @inheritdoc IVoter
@@ -84,17 +87,24 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IVoter
     mapping(address => uint256) public claimable;
 
-    constructor(address _forwarder, address _ve, address _factoryRegistry) ERC2771Context(_forwarder) {
+    IVault public vault;
+    uint internal constant BASIC_POINT = 1e4;
+    uint public feeForVe = 7e3;
+    uint256 public vestingPeriod;
+
+    constructor(address _forwarder, address _ve, address _factoryRegistry, address _vault, uint256 _period) ERC2771Context(_forwarder) {
         forwarder = _forwarder;
         ve = _ve;
         factoryRegistry = _factoryRegistry;
         rewardToken = IVotingEscrow(_ve).token();
         address _sender = _msgSender();
-        minter = _sender;
+        distributor = _sender;
         governor = _sender;
         epochGovernor = _sender;
         emergencyCouncil = _sender;
         maxVotingNum = 30;
+        vault = IVault(_vault);
+        vestingPeriod = _period;
     }
 
     modifier onlyNewEpoch(uint256 _tokenId) {
@@ -121,13 +131,13 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     }
 
     /// @dev requires initialization with at least rewardToken
-    function initialize(address[] calldata _tokens, address _minter) external {
-        if (_msgSender() != minter) revert NotMinter();
+    function initialize(address[] calldata _tokens, address _distributor) external {
+        if (_msgSender() != distributor) revert NotDistributor();
         uint256 _length = _tokens.length;
         for (uint256 i = 0; i < _length; i++) {
             _whitelistToken(_tokens[i], true);
         }
-        minter = _minter;
+        distributor = _distributor;
     }
 
     /// @inheritdoc IVoter
@@ -326,22 +336,17 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         (address votingRewardsFactory, address gaugeFactory) = IFactoryRegistry(factoryRegistry).factoriesToPoolFactory(
             _poolFactory
         );
-        address[] memory rewards = new address[](2);
-        bool isPool = IPoolFactory(_poolFactory).isPool(_pool);
+        address[] memory rewards;
         {
             // stack too deep
-            address token0;
-            address token1;
-            if (isPool) {
-                token0 = IPool(_pool).token0();
-                token1 = IPool(_pool).token1();
-                rewards[0] = token0;
-                rewards[1] = token1;
-            }
-
-            if (sender != governor) {
-                if (!isPool) revert NotAPool();
-                if (!isWhitelistedToken[token0] || !isWhitelistedToken[token1]) revert NotWhitelistedToken();
+            IERC20[] memory tokens;
+            bytes32 _poolId = IBalancerPool(_pool).getPoolId();
+            if(_poolId == bytes32(0)) revert NotAPool();
+            (tokens, , ) = IVault(vault).getPoolTokens(_poolId);
+            rewards = new address[](tokens.length);
+            for (uint256 i = 0; i < tokens.length; i++) {
+                rewards[i] = address(tokens[i]);
+                if (sender != governor) revert NotGovernor();
             }
         }
 
@@ -353,7 +358,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
             _pool,
             _feeVotingReward,
             rewardToken,
-            isPool
+            true
         );
 
         gaugeToFees[_gauge] = _feeVotingReward;
@@ -382,10 +387,10 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     function killGauge(address _gauge) external {
         if (_msgSender() != emergencyCouncil) revert NotEmergencyCouncil();
         if (!isAlive[_gauge]) revert GaugeAlreadyKilled();
-        // Return claimable back to minter
+        // Return claimable back to distributor
         uint256 _claimable = claimable[_gauge];
         if (_claimable > 0) {
-            IERC20(rewardToken).safeTransfer(minter, _claimable);
+            IERC20(rewardToken).safeTransfer(distributor, _claimable);
             delete claimable[_gauge];
         }
         isAlive[_gauge] = false;
@@ -408,7 +413,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IVoter
     function notifyRewardAmount(uint256 _amount) external {
         address sender = _msgSender();
-        if (sender != minter) revert NotMinter();
+        if (sender != distributor) revert NotDistributor();
         IERC20(rewardToken).safeTransferFrom(sender, address(this), _amount); // transfer the distribution in
         uint256 _ratio = (_amount * 1e18) / Math.max(totalWeight, 1); // 1e18 adjustment is removed during claim
         if (_ratio > 0) {
@@ -450,7 +455,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
                 if (isAlive[_gauge]) {
                     claimable[_gauge] += _share;
                 } else {
-                    IERC20(rewardToken).safeTransfer(minter, _share); // send rewards back to Minter so they're not stuck in Voter
+                    IERC20(rewardToken).safeTransfer(distributor, _share); // send rewards back to Minter so they're not stuck in Voter
                 }
             }
         } else {
@@ -498,7 +503,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
 
     /// @inheritdoc IVoter
     function distribute(uint256 _start, uint256 _finish) external nonReentrant {
-        IMinter(minter).updatePeriod();
+        IRewardsDistributor(distributor).updatePeriod();
         for (uint256 x = _start; x < _finish; x++) {
             _distribute(gauges[pools[x]]);
         }
@@ -506,10 +511,29 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
 
     /// @inheritdoc IVoter
     function distribute(address[] memory _gauges) external nonReentrant {
-        IMinter(minter).updatePeriod();
+        IRewardsDistributor(distributor).updatePeriod();
         uint256 _length = _gauges.length;
         for (uint256 x = 0; x < _length; x++) {
             _distribute(_gauges[x]);
         }
+    }
+
+    function changeFeeForVe(uint _feeForVe) external {
+        if (_msgSender() != governor) revert NotGovernor();
+        if(_feeForVe > BASIC_POINT) revert InvalidFeeForVe();
+        feeForVe = _feeForVe;
+    }
+
+    function setMinter(address _distributor) external {
+        if (_msgSender() != governor) revert NotGovernor();
+        distributor = _distributor;
+        emit RewardsDistributorChanged(_distributor);
+    }
+
+    function updateVestingPeriod(uint256 _period) external {
+        if (_msgSender() != governor) revert NotGovernor();
+        if(_period < DURATION) revert InvalidPeriod();
+        vestingPeriod = _period;
+        emit PeriodChanged(_period);
     }
 }

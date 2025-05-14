@@ -73,7 +73,7 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
     uint256 public tokenId;
 
     /// @param _forwarder address of trusted forwarder
-    /// @param _token `VELO` token address
+    /// @param _token `IXS` token address
     /// @param _factoryRegistry Factory Registry address
     constructor(address _forwarder, address _token, address _factoryRegistry) ERC2771Context(_forwarder) {
         forwarder = _forwarder;
@@ -545,7 +545,8 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
                              ESCROW STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    uint256 internal constant WEEK = 1 weeks;
+    // uint256 internal constant WEEK = 1 weeks;
+    uint256 internal constant WEEK = 2 weeks;
     uint256 internal constant MAXTIME = 4 * 365 * 86400;
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
     uint256 internal constant MULTIPLIER = 1 ether;

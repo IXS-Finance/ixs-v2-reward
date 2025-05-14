@@ -15,23 +15,27 @@ interface IGauge {
     event NotifyReward(address indexed from, uint256 amount);
     event ClaimFees(address indexed from, uint256 claimed0, uint256 claimed1);
     event ClaimRewards(address indexed from, uint256 amount);
+    event ClaimPoolFees(address indexed sender, address indexed token, uint256 claimedAmount);
+    event UpdateRatio(address indexed token, uint256 feeAmount);
+    event ClaimTradingFees(address indexed token, address indexed recipient, uint256 claimAmount);
+
 
     /// @notice Address of the pool LP token which is deposited (staked) for rewards
     function stakingToken() external view returns (address);
 
-    /// @notice Address of the token (VELO v2) rewarded to stakers
+    /// @notice Address of the token (Ixs v2) rewarded to stakers
     function rewardToken() external view returns (address);
 
     /// @notice Address of the FeesVotingReward contract linked to the gauge
     function feesVotingReward() external view returns (address);
 
-    /// @notice Address of Velodrome v2 Voter
+    /// @notice Address of Ixs v2 Voter
     function voter() external view returns (address);
 
-    /// @notice Address of Velodrome v2 Team
+    /// @notice Address of Ixs v2 Team
     function team() external view returns (address);
 
-    /// @notice Returns if gauge is linked to a legitimate Velodrome pool
+    /// @notice Returns if gauge is linked to a legitimate Ixs pool
     function isPool() external view returns (bool);
 
     /// @notice Timestamp end of current rewards period
@@ -62,10 +66,10 @@ interface IGauge {
     function rewardRateByEpoch(uint256) external view returns (uint256);
 
     /// @notice Cached amount of fees generated from the Pool linked to the Gauge of token0
-    function fees0() external view returns (uint256);
+    // function fees0() external view returns (uint256);
 
     /// @notice Cached amount of fees generated from the Pool linked to the Gauge of token1
-    function fees1() external view returns (uint256);
+    // function fees1() external view returns (uint256);
 
     /// @notice Get the current reward rate per unit of stakingToken deposited
     function rewardPerToken() external view returns (uint256 _rewardPerToken);
@@ -105,4 +109,7 @@ interface IGauge {
     ///      Assumes gauge reward tokens is 18 decimals.
     ///      If not 18 decimals, rewardRate may have rounding issues.
     function notifyRewardWithoutClaim(uint256 amount) external;
+
+    function earnedTradingFee(address _recipient, address[] memory _tokens) external view returns (uint256[] memory tradingFees);
+
 }
