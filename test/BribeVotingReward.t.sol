@@ -1617,12 +1617,12 @@ contract BribeVotingRewardTest is BaseTest {
         LR.approve(address(bribeVotingReward), TOKEN_1);
         uint256 pre = LR.balanceOf(address(owner));
         vm.expectEmit(true, true, true, true, address(bribeVotingReward));
-        emit NotifyReward(address(owner), address(LR), 604800, TOKEN_1);
+        emit NotifyReward(address(owner), address(LR), 1209600, TOKEN_1);
         bribeVotingReward.notifyRewardAmount(address(LR), TOKEN_1);
         uint256 post = LR.balanceOf(address(owner));
 
         assertEq(bribeVotingReward.isReward(address(LR)), true);
-        assertEq(bribeVotingReward.tokenRewardsPerEpoch(address(LR), 604800), TOKEN_1);
+        assertEq(bribeVotingReward.tokenRewardsPerEpoch(address(LR), 1209600), TOKEN_1);
         assertEq(pre - post, TOKEN_1);
         assertEq(LR.balanceOf(address(bribeVotingReward)), TOKEN_1);
 
@@ -1631,11 +1631,11 @@ contract BribeVotingRewardTest is BaseTest {
         LR.approve(address(bribeVotingReward), TOKEN_1 * 2);
         pre = LR.balanceOf(address(owner));
         vm.expectEmit(true, true, true, true, address(bribeVotingReward));
-        emit NotifyReward(address(owner), address(LR), 604800, TOKEN_1 * 2);
+        emit NotifyReward(address(owner), address(LR), 1209600, TOKEN_1 * 2);
         bribeVotingReward.notifyRewardAmount(address(LR), TOKEN_1 * 2);
         post = LR.balanceOf(address(owner));
 
-        assertEq(bribeVotingReward.tokenRewardsPerEpoch(address(LR), 604800), TOKEN_1 * 3);
+        assertEq(bribeVotingReward.tokenRewardsPerEpoch(address(LR), 1209600), TOKEN_1 * 3);
         assertEq(pre - post, TOKEN_1 * 2);
         assertEq(LR.balanceOf(address(bribeVotingReward)), TOKEN_1 * 3);
     }

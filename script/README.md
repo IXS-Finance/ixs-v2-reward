@@ -25,34 +25,18 @@ source .env
 
 1. Deploy Velodrome v2 Core
 ```
-forge script script/DeployVelodromeV2.s.sol:DeployVelodromeV2 --broadcast --slow --rpc-url optimism --verify -vvvv
+forge script script/DeployVelodromeV2.s.sol:DeployVelodromeV2 --broadcast --slow --rpc-url optimism --verify -vvvv --private-key $PRIVATE_KEY_DEPLOY
 ```
-2. Accept pending team as team. This needs to be done by the `minter.pendingTeam()` address. Within the deployed `Minter` contract call `acceptTeam()`.
-
-3. Deploy v2 gauges and v2 pools.  These gauges are built on Velodrome v2 using newly created v2 pools.
+2. Deploy gauges with pool addresses
+Add the list of pool address in the script/constants/{CONSTANTS_FILENAME}
 ```
-forge script script/DeployGaugesAndPoolsV2.s.sol:DeployGaugesAndPoolsV2 --broadcast --slow --rpc-url optimism --verify -vvvv
+"poolsV2": [
+        "0x80986ebD35E604B77Cd4bD8a858F6B0d4c08cDDB",
+        "pool 1 address",
+        ...
+    ]
 ```
-
-4. Deploy governor contracts. From the above output of 1, copy the forwarder, minter and voting escrow addresses into your constants file under the key "current":
-
-e.g. 
+Command to deploy
 ```
-    "current": {
-        "Forwarder": "0x...",
-        "Minter": "0x...",
-        "VotingEscrow": "0x..."
-    }
+forge script script/BalancerDeployGaugesAndPoolsV2.s.sol:DeployGauges --broadcast --slow --rpc-url optimism --verify -vvvv --private-key $PRIVATE_KEY_DEPLOY
 ```
-
-This is done as a sanity check in the event that the governor is not deployed alongside the rest of the contracts so that the governor will always be pointing to valid contracts. 
-
-```
-forge script script/DeployGovernors.s.sol:DeployGovernors --broadcast --slow --rpc-url optimism --verify -vvvv
-```
-
-5.  Update the governor addresses on v2.  This needs to be done by the v2 `Voter.governor()` address.  Within v2 `voter`:
- - call `setEpochGovernor()` using the `EpochGovernor` address located in `script/constants/output/{OUTPUT_FILENAME}`
- - call `setGovernor()` using the `Governor` address located in the same file.
-
-6. Accept governor vetoer status.  This also needs to be done by the v2 `escrow.team()` address.  Within the deployed `Governor` contract call `acceptVetoer()`.

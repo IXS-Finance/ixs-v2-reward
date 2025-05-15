@@ -2,16 +2,17 @@
 pragma solidity 0.8.19;
 
 import "forge-std/StdJson.sol";
-import "../test/Base.sol";
+import "../test/Base_NotForTest.sol";
+import "../contracts/reader/RewardSugar.sol";
 
-contract DeployVelodromeV2 is Base {
+contract NotForTest_DeployVelodromeV2 is Base {
     using stdJson for string;
     string public basePath;
     string public path;
 
     uint256 public deployPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
     address public deployerAddress = vm.addr(deployPrivateKey);
-    string public constantsFilename = vm.envString("CONSTANTS_FILENAME");
+    string public constantsFilename = vm.envString("DEPLOYMENT_CONSTANTS_FILENAME");
     string public outputFilename = vm.envString("OUTPUT_FILENAME");
     string public jsonConstants;
     string public jsonOutput;
@@ -33,12 +34,18 @@ contract DeployVelodromeV2 is Base {
         team = abi.decode(vm.parseJson(jsonConstants, ".team"), (address));
         feeManager = abi.decode(vm.parseJson(jsonConstants, ".feeManager"), (address));
         emergencyCouncil = abi.decode(vm.parseJson(jsonConstants, ".emergencyCouncil"), (address));
+        vault = abi.decode(vm.parseJson(jsonConstants, ".vault"), (address));
+        VELO = Velo(abi.decode(vm.parseJson(jsonConstants, ".VELO"), (address)));
+        poolFactory = abi.decode(vm.parseJson(jsonConstants, ".PoolFactory"), (address));
     }
 
     function run() public {
-        _deploySetupBefore();
-        _coreSetup();
-        _deploySetupAfter();
+        // _deploySetupBefore();
+        // _coreSetup();
+        // _deploySetupAfter();
+        // deployGauge();
+        // deployRewardSugar();
+        deployVeSugar();
     }
 
     function _deploySetupBefore() public {
@@ -56,9 +63,6 @@ contract DeployVelodromeV2 is Base {
         // start broadcasting transactions
         vm.startBroadcast(deployerAddress);
 
-        // deploy VELO
-        VELO = new Velo();
-
         tokens.push(address(VELO));
     }
 
@@ -66,15 +70,15 @@ contract DeployVelodromeV2 is Base {
         // Set protocol state to team
         escrow.setTeam(team);
         minter.setTeam(team);
-        factory.setPauser(team);
+        // factory.setPauser(team);
         voter.setEmergencyCouncil(emergencyCouncil);
         voter.setEpochGovernor(team);
         voter.setGovernor(team);
         factoryRegistry.transferOwnership(team);
 
         // Set contract vars
-        factory.setFeeManager(feeManager);
-        factory.setVoter(address(voter));
+        // factory.setFeeManager(feeManager);
+        // factory.setVoter(address(voter));
 
         // finish broadcasting transactions
         vm.stopBroadcast();
@@ -84,14 +88,54 @@ contract DeployVelodromeV2 is Base {
         vm.writeJson(vm.serializeAddress("v2", "VotingEscrow", address(escrow)), path);
         vm.writeJson(vm.serializeAddress("v2", "Forwarder", address(forwarder)), path);
         vm.writeJson(vm.serializeAddress("v2", "ArtProxy", address(artProxy)), path);
-        vm.writeJson(vm.serializeAddress("v2", "Distributor", address(minter)), path);
+        vm.writeJson(vm.serializeAddress("v2", "RewardsDistributor", address(minter)), path);
         vm.writeJson(vm.serializeAddress("v2", "Voter", address(voter)), path);
-        vm.writeJson(vm.serializeAddress("v2", "Router", address(router)), path);
         // vm.writeJson(vm.serializeAddress("v2", "Minter", address(distributor)), path);
-        vm.writeJson(vm.serializeAddress("v2", "PoolFactory", address(factory)), path);
+        // vm.writeJson(vm.serializeAddress("v2", "PoolFactory", address(factory)), path);
         vm.writeJson(vm.serializeAddress("v2", "VotingRewardsFactory", address(votingRewardsFactory)), path);
         vm.writeJson(vm.serializeAddress("v2", "GaugeFactory", address(gaugeFactory)), path);
         vm.writeJson(vm.serializeAddress("v2", "ManagedRewardsFactory", address(managedRewardsFactory)), path);
         vm.writeJson(vm.serializeAddress("v2", "FactoryRegistry", address(factoryRegistry)), path);
+        vm.writeJson(vm.serializeAddress("v2", "VeSugar", address(veSugar)), path);
+    }
+    function deployGauge() public {
+        // Load pools from base-sepolia.json
+        address[] memory _pools = abi.decode(vm.parseJson(jsonConstants, ".pools"), (address[]));
+
+        // Start broadcasting transactions
+        vm.startBroadcast(deployerAddress);
+
+        // Create gauges for each pool
+        for (uint256 i = 0; i < _pools.length; i++) {
+            address gauge = IVoter(address(voter)).createGauge(address(poolFactory), _pools[i]);
+            console.log("Created gauge for pool %s: %s", _pools[i], gauge);
+
+            // Write gauge address to output file
+            string memory gaugeKey = string.concat("Gauge-", vm.toString(_pools[i]));
+            vm.writeJson(vm.serializeAddress("v2", gaugeKey, gauge), path);
+        }
+
+        // Stop broadcasting transactions
+        vm.stopBroadcast();
+    }
+
+    function deployRewardSugar() public {
+        vm.startBroadcast(deployerAddress);
+        
+        address rewardSugar = address(new RewardSugar(address(voter)));
+        console.log("RewardSugar deployed at: %s", rewardSugar);
+        vm.writeJson(vm.serializeAddress("v2", "RewardSugar", address(rewardSugar)), path);
+
+        vm.stopBroadcast();
+    }
+
+    function deployVeSugar() public {
+        vm.startBroadcast(deployerAddress);
+
+        // Deploy VeSugar contract
+        veSugar = address(new VeSugar(address(voter)));
+        vm.writeJson(vm.serializeAddress("v2", "VeSugar", address(veSugar)), path);
+
+        vm.stopBroadcast();
     }
 }

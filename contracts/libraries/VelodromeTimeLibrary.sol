@@ -2,7 +2,8 @@
 pragma solidity 0.8.19;
 
 library VelodromeTimeLibrary {
-    uint256 internal constant WEEK = 7 days;
+    // uint256 internal constant WEEK = 7 days;
+    uint256 internal constant WEEK = 14 days;
 
     /// @dev Returns start of epoch based on current timestamp
     function epochStart(uint256 timestamp) internal pure returns (uint256) {
@@ -29,6 +30,19 @@ library VelodromeTimeLibrary {
     function epochVoteEnd(uint256 timestamp) internal pure returns (uint256) {
         unchecked {
             return timestamp - (timestamp % WEEK) + WEEK - 1 hours;
+        }
+    }
+
+    function periodStart(uint256 timestamp, uint256 period) internal pure returns (uint256) {
+        unchecked {
+            return timestamp - (timestamp % period);
+        }
+    }
+
+    /// @dev Returns start of next epoch / end of current epoch
+    function periodNext(uint256 timestamp, uint256 period) internal pure returns (uint256) {
+        unchecked {
+            return timestamp - (timestamp % period) + period;
         }
     }
 }

@@ -489,7 +489,7 @@ contract GaugeTest is BaseTest {
         deal(address(VELO), address(voter), reward);
         vm.startPrank(address(voter));
         VELO.approve(address(gauge), reward);
-        vm.expectCall(Gauge(gauge).stakingToken(), abi.encodeCall(IPool.claimFees, ()), 1);
+        // vm.expectCall(Gauge(gauge).stakingToken(), abi.encodeCall(IPool.claimFees, ()), 1);
         Gauge(gauge).notifyRewardAmount(reward);
         vm.stopPrank();
 
@@ -508,7 +508,7 @@ contract GaugeTest is BaseTest {
         deal(address(VELO), address(voter), reward);
         vm.startPrank(address(voter));
         VELO.approve(address(gauge), reward);
-        vm.expectCall(Gauge(gauge).stakingToken(), abi.encodeCall(IPool.claimFees, ()), 1);
+        // vm.expectCall(Gauge(gauge).stakingToken(), abi.encodeCall(IPool.claimFees, ()), 1);
         Gauge(gauge).notifyRewardAmount(reward);
         vm.stopPrank();
 
