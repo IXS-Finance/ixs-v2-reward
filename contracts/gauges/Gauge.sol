@@ -295,6 +295,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     ) internal {
         // Only update on this pool if there is a fee
         if (_feeAmount == 0) return;
+        require(totalSupply > 0, "No supply");
         uint256 _ratio = (_feeAmount * 1e30) / totalSupply; // 1e30 adjustment is removed during claim
         if (_ratio > 0) {
             indexRatio[_token] += _ratio;

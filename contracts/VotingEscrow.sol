@@ -529,7 +529,7 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
     /// @dev Must be called prior to updating `LockedBalance`
     function _burn(uint256 _tokenId) internal {
         address sender = _msgSender();
-        if (!_isApprovedOrOwner(sender, _tokenId)) revert NotApprovedOrOwner();
+        if(sender != voter && !_isApprovedOrOwner(sender, _tokenId)) revert NotApprovedOrOwner();
         address owner = _ownerOf(_tokenId);
 
         // Clear approval
@@ -546,7 +546,7 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     // uint256 internal constant WEEK = 1 weeks;
-    uint256 internal constant WEEK = 2 weeks;
+    uint256 internal constant WEEK = 14 days;
     uint256 internal constant MAXTIME = 4 * 365 * 86400;
     int128 internal constant iMAXTIME = 4 * 365 * 86400;
     uint256 internal constant MULTIPLIER = 1 ether;
@@ -892,7 +892,7 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
     /// @inheritdoc IVotingEscrow
     function withdraw(uint256 _tokenId) external nonReentrant {
         address sender = _msgSender();
-        if (!_isApprovedOrOwner(sender, _tokenId)) revert NotApprovedOrOwner();
+        if (!_isApprovedOrOwner(sender, _tokenId) && sender != voter) revert NotApprovedOrOwner();
         if (voted[_tokenId]) revert AlreadyVoted();
         if (escrowType[_tokenId] != EscrowType.NORMAL) revert NotNormalNFT();
 
@@ -900,6 +900,7 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
         if (oldLocked.isPermanent) revert PermanentLock();
         if (block.timestamp < oldLocked.end) revert LockNotExpired();
         uint256 value = oldLocked.amount.toUint256();
+        address tokenOwner = _ownerOf(_tokenId);
 
         // Burn the NFT
         _burn(_tokenId);
@@ -912,9 +913,9 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
         // Both can have >= 0 amount
         _checkpoint(_tokenId, oldLocked, LockedBalance(0, 0, false));
 
-        IERC20(token).safeTransfer(sender, value);
+        IERC20(token).safeTransfer(tokenOwner, value);
 
-        emit Withdraw(sender, _tokenId, value, block.timestamp);
+        emit Withdraw(tokenOwner, _tokenId, value, block.timestamp);
         emit Supply(supplyBefore, supplyBefore - value);
     }
 

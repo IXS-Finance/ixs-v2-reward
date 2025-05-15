@@ -280,4 +280,6 @@ interface IVoter {
     function vestingPeriod() external view returns (uint256);
 
     function poolVote(uint256 tokenId, uint256 index) external view returns (address);
+
+    function withdrawVeNFT(uint256 tokenId) external;
 }

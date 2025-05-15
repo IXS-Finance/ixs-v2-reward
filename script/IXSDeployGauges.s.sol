@@ -43,11 +43,11 @@ contract DeployGauges is Script {
         // load in vars
         jsonConstants = vm.readFile(path);
         address[] memory pools = abi.decode(jsonConstants.parseRaw(".pools"), (address[]));
+        address factory = abi.decode(jsonConstants.parseRaw(".PoolFactory"), (address));
 
         path = string.concat(basePath, "output/DeployVelodromeV2-");
         path = string.concat(path, outputFilename);
         jsonOutput = vm.readFile(path);
-        address factory = abi.decode(jsonConstants.parseRaw(".PoolFactory"), (address));
 
         voter = Voter(abi.decode(jsonOutput.parseRaw(".Voter"), (address)));
 
