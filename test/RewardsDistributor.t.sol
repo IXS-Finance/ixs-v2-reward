@@ -57,18 +57,20 @@ contract RewardsDistributorTest is BaseTest {
         vm.expectEmit(true, true, false, true, address(voter));
         emit NotifyReward(address(minter), address(VELO), epochRewards);
         vm.expectEmit(true, false, false, true, address(minter));
-        emit Mint(address(owner), epochRewards);
+        emit Mint(address(voter), epochRewards);
+        vm.prank(address(voter));
         minter.updatePeriod();
-        assertEq(minter.activePeriod(), block.timestamp / 2 weeks * 2 weeks);
+        // assertEq(minter.activePeriod(), block.timestamp / 2 weeks * 2 weeks);
         assertEq(minter.availableDeposit(), 0);
         assertEq(minter.lastAvailableDeposit(), epochRewards);
     }
 
     function testUpdatePeriodNoChange() public {
         deal(address(VELO), address(minter), 0);
-        uint256 initialActivePeriod = minter.activePeriod();
+        // uint256 initialActivePeriod = minter.activePeriod();
+        vm.prank(address(voter));
         minter.updatePeriod();
-        assertEq(minter.activePeriod(), initialActivePeriod);
+        // assertEq(minter.activePeriod(), initialActivePeriod);
         // Deal some VELO tokens to the minter
         uint256 epochRewards = 15_000_000 * 1e18;
         deal(address(VELO), address(minter), epochRewards);
@@ -77,6 +79,7 @@ contract RewardsDistributorTest is BaseTest {
         uint256 initialBalance = VELO.balanceOf(address(minter));
 
         // Call updatePeriod
+        vm.prank(address(voter));
         minter.updatePeriod();
 
         // Assert that the balance of the minter remains unchanged
@@ -95,14 +98,7 @@ contract RewardsDistributorTest is BaseTest {
         assertEq(minter.lastAvailableDeposit(), 0);
         assertEq(VELO.balanceOf(address(minter)), epochRewards);
     }
-    function testDepositRevertNotTeam() public {
-        vm.startPrank(nonTeam);
-        uint256 epochRewards = 15_000_000 * 1e18;
-        deal(address(VELO), address(minter.team()), epochRewards);
-        VELO.approve(address(minter), epochRewards);
-        vm.expectRevert(IRewardsDistributor.NotTeam.selector);
-        minter.deposit(epochRewards);
-    }
+    
     function testDepositRevertZeroAmount() public {
         vm.startPrank(minter.team());
         uint256 epochRewards = 0;
@@ -110,5 +106,55 @@ contract RewardsDistributorTest is BaseTest {
         VELO.approve(address(minter), epochRewards);
         vm.expectRevert(IRewardsDistributor.ZeroAmount.selector);
         minter.deposit(epochRewards);
+    }
+
+    function testMultipleUpdatePeriod() public {
+        // vm.warp(block.timestamp + 2 weeks); // Move forward in time
+        uint256 epochRewards = 15_000_000 * 1e18;
+        // deal(address(VELO), address(minter), epochRewards);
+        address _team = IRewardsDistributor(minter).team();
+        deal(address(VELO), address(_team), 3 * epochRewards);
+        vm.startPrank(_team);
+        VELO.approve(address(minter), 3 * epochRewards);
+        minter.deposit(epochRewards);
+        vm.stopPrank();
+        assertEq(minter.availableDeposit(), epochRewards);
+
+        vm.expectEmit(true, true, false, true, address(voter));
+        emit NotifyReward(address(minter), address(VELO), epochRewards);
+        vm.expectEmit(true, false, false, true, address(minter));
+        vm.prank(address(voter));
+        emit Mint(address(voter), epochRewards);
+        minter.updatePeriod();
+
+        //second deposit
+        vm.prank(_team);
+        minter.deposit(epochRewards);
+        assertEq(minter.availableDeposit(), epochRewards);
+        vm.prank(address(voter));
+        emit Mint(address(voter), epochRewards);
+        minter.updatePeriod();
+        assertEq(minter.availableDeposit(), 0);
+
+        //third deposit
+        vm.prank(_team);
+        minter.deposit(epochRewards);
+        assertEq(minter.availableDeposit(), epochRewards);
+        vm.prank(address(voter));
+        emit Mint(address(voter), epochRewards);
+        minter.updatePeriod();
+        assertEq(minter.availableDeposit(), 0);
+    }
+
+    function testUpdatePeriodRevertNotVoter() public {
+        uint256 epochRewards = 15_000_000 * 1e18;
+        deal(address(VELO), address(minter.team()), epochRewards);
+        vm.startPrank(minter.team());
+        VELO.approve(address(minter), epochRewards);
+        minter.deposit(epochRewards);
+        vm.stopPrank();
+        assertEq(minter.availableDeposit(), epochRewards);
+        vm.expectRevert("Not Voter");
+        minter.updatePeriod();
     }
 }

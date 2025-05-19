@@ -45,7 +45,7 @@ contract RewardSugarTest is BaseTest {
         team = escrow.team();
         poolFee = gauge.poolFees();
 
-        rewardSugar = address(new RewardSugar(address(voter), address(vault)));
+        rewardSugar = address(new RewardSugar(address(voter)));
     }
 
     function testEarnedTradingFeeMultipleDepositors() public {
@@ -110,10 +110,10 @@ contract RewardSugarTest is BaseTest {
 
         (address[] memory feeTokens2, ,uint256[] memory feeVotingReward2, ) = IRewardSugar(rewardSugar).getFeeAndBribeVotingRewards(address(pool), 1);
 
-        assertEq(feeTokens1[0][0], address(FRAX));
-        assertEq(feeTokens1[0][1], address(USDC));
-        assertEq(feeTokens2[0], address(FRAX));
-        assertEq(feeTokens2[1], address(USDC));
+        assertEq(feeTokens1[0][0], address(USDC));
+        assertEq(feeTokens1[0][1], address(FRAX));
+        assertEq(feeTokens2[0], address(USDC));
+        assertEq(feeTokens2[1], address(FRAX));
         assertEq(feeVotingReward[0], feesBalanceUSDC);
         assertEq(feeVotingReward[1], feesBalanceFRAX);
         assertEq(feeVotingReward1[0][0], feesBalanceUSDC);
