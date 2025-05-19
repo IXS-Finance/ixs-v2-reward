@@ -145,4 +145,16 @@ contract RewardsDistributorTest is BaseTest {
         minter.updatePeriod();
         assertEq(minter.availableDeposit(), 0);
     }
+
+    function testUpdatePeriodRevertNotVoter() public {
+        uint256 epochRewards = 15_000_000 * 1e18;
+        deal(address(VELO), address(minter.team()), epochRewards);
+        vm.startPrank(minter.team());
+        VELO.approve(address(minter), epochRewards);
+        minter.deposit(epochRewards);
+        vm.stopPrank();
+        assertEq(minter.availableDeposit(), epochRewards);
+        vm.expectRevert("Not Voter");
+        minter.updatePeriod();
+    }
 }
