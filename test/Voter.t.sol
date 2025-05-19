@@ -812,6 +812,7 @@ contract VoterTest is BaseTest {
         VELO.approve(address(minter), 15e24);
         minter.deposit(15e24);
         vm.stopPrank();
+        vm.prank(address(voter));
         minter.updatePeriod();
         voter.updateFor(address(gauge));
 
@@ -838,6 +839,7 @@ contract VoterTest is BaseTest {
         VELO.approve(address(minter), 15e24);
         minter.deposit(15e24);
         vm.stopPrank();
+        vm.prank(address(voter));
         minter.updatePeriod();
 
         voter.updateFor(address(gauge));
@@ -865,6 +867,7 @@ contract VoterTest is BaseTest {
         VELO.approve(address(minter), 15e24);
         minter.deposit(15e24);
         vm.stopPrank();
+        vm.prank(address(voter));
         minter.updatePeriod();
 
         // both gauges have equal voting weight
