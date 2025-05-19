@@ -123,6 +123,7 @@ contract RewardSugarTest is BaseTest {
     }
 
     function testGetFeeAndBribeVotingRewardsForEpoch() public {
+        uint createdAt = block.timestamp;
         uint stakedAmount1 = 5e10;
         uint stakedAmount2 = 3e10;
         uint stakedAmount3 = 2e10;
@@ -190,5 +191,25 @@ contract RewardSugarTest is BaseTest {
         assertEq(feeVotingReward1[0][0], feesBalanceUSDC);
         assertEq(feeVotingReward1[0][1], feesBalanceFRAX);
 
+        skipToNextEpoch(1 hours + 1);
+        deal(address(VELO), address(voter), rewardAmount);
+        deal(address(FRAX), address(gauge), amount1);
+        deal(address(USDC), address(gauge), amount2);
+        vm.prank(address(voter));
+        IERC20(address(VELO)).approve(address(gauge), rewardAmount);
+
+        vm.prank(address(voter));
+        gauge.notifyRewardAmount(rewardAmount);
+        uint256 feesBalanceFRAX2 = IERC20(FRAX).balanceOf(address(feesVotingReward));
+        uint256 feesBalanceUSDC2 = IERC20(USDC).balanceOf(address(feesVotingReward));
+        uint[] memory createdAts = new uint[](1);
+        createdAts[0] = createdAt;
+        (address[][] memory feeTokens2, , uint256[][] memory feeVotingReward2, ) = IRewardSugar(rewardSugar).getAllRewardOfPools(_pools, createdAts);
+        assertEq(feeTokens2[0][0], address(USDC));
+        assertEq(feeTokens2[0][1], address(FRAX));
+        assertEq(feeVotingReward2[0][0], feesBalanceUSDC2);
+        assertEq(feeVotingReward2[0][1], feesBalanceFRAX2);
+        assertEq(feeVotingReward2[0][0], feeVotingReward1[0][0] * 2);
+        assertEq(feeVotingReward2[0][1], feeVotingReward1[0][1] * 2);
     }
 }
