@@ -23,9 +23,6 @@ interface IRewardsDistributor {
     /// @notice Starting weekly emission of 15M IXS (IXS has 18 decimals)
     // function epochRewards() external view returns (uint256);
 
-    /// @notice Timestamp of start of epoch that updatePeriod was last called in
-    function activePeriod() external returns (uint256);
-
     /// @notice Current team address in charge of emissions
     function team() external view returns (address);
 

@@ -19,9 +19,7 @@ contract RewardsDistributor is IRewardsDistributor {
 
     IVoter public immutable voter;
 
-    uint256 public constant EPOCH_DURATION = 2 weeks;
-
-    uint256 public activePeriod;
+    uint256 public constant EPOCH_DURATION = 14 days;
 
     address public team;
 
@@ -38,7 +36,6 @@ contract RewardsDistributor is IRewardsDistributor {
         IVotingEscrow IVe = IVotingEscrow(IVoter(_voter).ve());
         ixs = IIxs(IVe.token());
         team = msg.sender;
-        activePeriod = ((block.timestamp) / EPOCH_DURATION) * EPOCH_DURATION; // allow emissions this coming epoch
     }
 
     function setTeam(address _team) external {
@@ -54,21 +51,18 @@ contract RewardsDistributor is IRewardsDistributor {
         emit AcceptTeam(team);
     }
 
-    function updatePeriod() external returns (uint256 _period) {
-        _period = activePeriod;
-        if (block.timestamp >= _period + EPOCH_DURATION) {
-            _period = (block.timestamp / EPOCH_DURATION) * EPOCH_DURATION;
-            activePeriod = _period;
-            if (availableDeposit == 0) {
-                return 0;
-            }
-
-            ixs.approve(address(voter), availableDeposit);
-            voter.notifyRewardAmount(availableDeposit);
-            lastAvailableDeposit = availableDeposit;
-            emit Mint(msg.sender, availableDeposit);
-            availableDeposit = 0;
+    function updatePeriod() external returns (uint256) {
+        require(msg.sender == address(voter), "Not Voter");
+        if (availableDeposit == 0) {
+            return 0;
         }
+
+        ixs.approve(address(voter), availableDeposit);
+        voter.notifyRewardAmount(availableDeposit);
+        lastAvailableDeposit = availableDeposit;
+        emit Mint(msg.sender, availableDeposit);
+        availableDeposit = 0;
+        return availableDeposit;
     }
 
     function deposit(uint amount) external {
