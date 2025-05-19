@@ -53,4 +53,10 @@ interface IRewardSugar {
         address[] calldata _pools,
         uint256 _tokenId
     ) external view returns (address[][] memory feeTokens, address[][] memory bribeTokens, uint[][] memory feeRewards, uint[][] memory bribeRewards);
+
+
+    function getFeeAndBribeVotingRewardsOfPools(
+        address[] calldata _pools,
+        uint256 _timestamp
+    ) external view returns (address[][] memory feeTokens, address[][] memory bribeTokens, uint[][] memory feeRewards, uint[][] memory bribeRewards);
 }
