@@ -19,6 +19,7 @@ import {Reward} from "../rewards/Reward.sol";
  */
 contract RewardSugar is IRewardSugar { 
     IVoter public immutable voter;
+    uint256 public constant DURATION = 14 days;
     constructor(address _voter) {
         require(_voter != address(0), "Invalid voter address");
         
@@ -105,6 +106,106 @@ contract RewardSugar is IRewardSugar {
             address bribeVotingReward = voter.gaugeToBribe(_gauge);
             (feeTokens[i], feeRewards[i]) = _getEarned(_tokenId, feeVotingReward);
             (bribeTokens[i], bribeRewards[i]) = _getEarned(_tokenId, bribeVotingReward);
+        }
+    }
+
+    function _getRewards(
+        address _votingReward,
+        uint256 _timestamp
+    ) internal view returns (address[] memory, uint256[] memory) {
+        // Calculate total number of rewards
+        uint256 totalLength = IReward(_votingReward).rewardsListLength();
+        require(totalLength > 0, "No rewards found");
+
+        // Calculate the epoch start time
+        uint epochStart = _timestamp - (_timestamp % DURATION);
+
+        // Initialize rewards array
+        uint256[] memory rewards = new uint256[](totalLength);
+        address[] memory tokens = new address[](totalLength);
+
+
+        // Get fee rewards for pool tokens
+        for (uint256 i = 0; i < totalLength; i++) {
+            address token = address(Reward(_votingReward).rewards(i));
+            uint256 earnedAmount = IReward(_votingReward).tokenRewardsPerEpoch(token, epochStart);
+            rewards[i] = earnedAmount;
+            tokens[i] = token;
+            
+        }
+        return (tokens, rewards);
+    }
+
+    function _getAllRewards(
+        address _votingReward,
+        uint256 _createdAt
+    ) internal view returns (address[] memory, uint256[] memory) {
+        // Calculate total number of rewards
+        uint256 totalLength = IReward(_votingReward).rewardsListLength();
+        require(totalLength > 0, "No rewards found");
+
+        // Calculate the epoch start time
+        uint256 firstEpoch = _createdAt - (_createdAt % DURATION);
+        uint epochStart = block.timestamp - (block.timestamp % DURATION);
+
+        // Initialize rewards array
+        uint256[] memory rewards = new uint256[](totalLength);
+        address[] memory tokens = new address[](totalLength);
+
+        // Get fee rewards for pool tokens
+        for (uint256 i = 0; i < totalLength; i++) {
+            address token = address(Reward(_votingReward).rewards(i));
+            uint256 earnedAmount = 0;
+            for(uint j = firstEpoch; j <= epochStart; j += DURATION) {
+                earnedAmount += IReward(_votingReward).tokenRewardsPerEpoch(token, j);
+            }
+            rewards[i] = earnedAmount;
+            tokens[i] = token;
+            
+        }
+        return (tokens, rewards);
+    }
+    
+
+    function getFeeAndBribeVotingRewardsOfPools(
+        address[] calldata _pools,
+        uint256 _timestamp
+    ) external view returns (address[][] memory feeTokens, address[][] memory bribeTokens, uint[][] memory feeRewards, uint[][] memory bribeRewards) {
+        uint256 length = _pools.length;
+        feeRewards = new uint[][](length);
+        bribeRewards = new uint[][](length);
+        feeTokens = new address[][](length);
+        bribeTokens = new address[][](length);
+        for (uint256 i = 0; i < length; i++) {
+            require(_pools[i] != address(0), "Invalid pool address");
+
+            address _gauge = IVoter(voter).gauges(_pools[i]);
+            require(_gauge != address(0), "Invalid gauge address");
+            address feeVotingReward = voter.gaugeToFees(_gauge);
+            address bribeVotingReward = voter.gaugeToBribe(_gauge);
+            (feeTokens[i], feeRewards[i]) = _getRewards(feeVotingReward, _timestamp);
+            (bribeTokens[i], bribeRewards[i]) = _getRewards(bribeVotingReward, _timestamp);
+        }
+    }
+
+    function getAllRewardOfPools(
+        address[] calldata _pools,
+        uint256[] calldata _createdAts
+    ) external view returns (address[][] memory feeTokens, address[][] memory bribeTokens, uint[][] memory feeRewards, uint[][] memory bribeRewards) {
+        uint256 length = _pools.length;
+        feeRewards = new uint[][](length);
+        bribeRewards = new uint[][](length);
+        feeTokens = new address[][](length);
+        bribeTokens = new address[][](length);
+        for (uint256 i = 0; i < length; i++) {
+            require(_pools[i] != address(0), "Invalid pool address");
+
+            address _gauge = IVoter(voter).gauges(_pools[i]);
+            require(_gauge != address(0), "Invalid gauge address");
+            address feeVotingReward = voter.gaugeToFees(_gauge);
+            address bribeVotingReward = voter.gaugeToBribe(_gauge);
+            (feeTokens[i], feeRewards[i]) = _getAllRewards(feeVotingReward, _createdAts[i]);
+            (bribeTokens[i], bribeRewards[i]) = _getAllRewards(bribeVotingReward, _createdAts[i]);
         }
     }
 
