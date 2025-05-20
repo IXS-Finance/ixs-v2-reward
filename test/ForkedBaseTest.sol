@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 
-import "./Base.sol";
+import "./Base_NotForTest.sol";
 import {IPool, Pool} from "contracts/Pool.sol";
 import {TestOwner} from "utils/TestOwner.sol";
 import {MockERC20} from "utils/MockERC20.sol";
@@ -26,7 +26,7 @@ abstract contract BaseTest is Base, TestOwner {
 
     uint256 constant DURATION = 7 days;
     // uint256 constant WEEK = 1 weeks;
-    uint256 constant WEEK = 2 weeks;
+    uint256 constant WEEK = 2 days;
     /// @dev Use same value as in voting escrow
     uint256 constant MAXTIME = 4 * 365 * 86400;
     uint256 constant MAX_BPS = 10_000;
@@ -72,11 +72,9 @@ abstract contract BaseTest is Base, TestOwner {
     ///      To set up mainnet forks from a certain block (e.g. to fix venft balances for testing)
     ///      Use a CUSTOM deployment, and call _forkSetUp with the desired block number
     function setUp() public {
-        if (deploymentType == Deployment.DEFAULT) {
-            _testSetup();
-        } else if (deploymentType == Deployment.FORK) {
-            _forkSetup();
-        }
+        vault = 0xCDc9d850843a6E57bDB25FaFA592BFb5e3C53909;
+
+        _testSetup();
         _setUp();
     }
 
@@ -87,7 +85,7 @@ abstract contract BaseTest is Base, TestOwner {
     function _testSetup() public {
         _testSetupBefore();
         _coreSetup();
-        _testSetupAfter();
+        // _testSetupAfter();
     }
 
     function _forkSetup() public {
@@ -98,7 +96,7 @@ abstract contract BaseTest is Base, TestOwner {
     function _testSetupBefore() public {
         // seed set up with initial time
         // skip(1 weeks);
-        skip(2 weeks);
+        skip(2 days);
 
         deployOwners();
         deployCoins();
@@ -300,7 +298,7 @@ abstract contract BaseTest is Base, TestOwner {
     function skipToNextEpoch(uint256 offset) public {
         uint256 ts = block.timestamp;
         // uint256 nextEpoch = ts - (ts % (1 weeks)) + (1 weeks);
-        uint256 nextEpoch = ts - (ts % (2 weeks)) + (2 weeks);
+        uint256 nextEpoch = ts - (ts % (2 days)) + (2 days);
 
         vm.warp(nextEpoch + offset);
         vm.roll(block.number + 1);
