@@ -503,18 +503,30 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
 
     /// @inheritdoc IVoter
     function distribute(uint256 _start, uint256 _finish) external nonReentrant {
-        IRewardsDistributor(distributor).updatePeriod();
+        uint256 reward = IRewardsDistributor(distributor).updatePeriod();
+        
         for (uint256 x = _start; x < _finish; x++) {
-            _distribute(gauges[pools[x]]);
+            if (reward == 0) {
+            // only claim and distribute fee
+                IGauge(gauges[pools[x]]).claimFees();
+            }
+            else {
+                _distribute(gauges[pools[x]]);
+            }
         }
     }
 
     /// @inheritdoc IVoter
     function distribute(address[] memory _gauges) external nonReentrant {
-        IRewardsDistributor(distributor).updatePeriod();
+        uint256 reward = IRewardsDistributor(distributor).updatePeriod();
         uint256 _length = _gauges.length;
         for (uint256 x = 0; x < _length; x++) {
-            _distribute(_gauges[x]);
+            if (reward == 0) {
+                // only claim and distribute fee
+                IGauge(_gauges[x]).claimFees();
+            } else {
+                _distribute(_gauges[x]);
+            }
         }
     }
 

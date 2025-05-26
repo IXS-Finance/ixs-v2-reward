@@ -337,4 +337,9 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             tradingFees[i] = _earnedTradingFee(_recipient, _tokens[i]);
         }
     }
+
+    function claimFees() external {
+        if (msg.sender != voter) revert NotVoter();
+        _claimFees();
+    }
 }
