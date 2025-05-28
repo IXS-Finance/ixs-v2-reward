@@ -70,6 +70,7 @@ contract FactoryRegistry is IFactoryRegistry, Ownable {
         if (!_poolFactories.contains(poolFactory)) revert PathNotApproved();
         _poolFactories.remove(poolFactory);
         (address votingRewardsFactory, address gaugeFactory) = factoriesToPoolFactory(poolFactory);
+        delete _factoriesToPoolsFactory[poolFactory];
         emit Unapprove(poolFactory, votingRewardsFactory, gaugeFactory);
     }
 
