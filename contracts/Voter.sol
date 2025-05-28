@@ -332,6 +332,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         address sender = _msgSender();
         if (!IFactoryRegistry(factoryRegistry).isPoolFactoryApproved(_poolFactory)) revert FactoryPathNotApproved();
         if (gauges[_pool] != address(0)) revert GaugeExists();
+        if (sender != governor) revert NotGovernor();
 
         (address votingRewardsFactory, address gaugeFactory) = IFactoryRegistry(factoryRegistry).factoriesToPoolFactory(
             _poolFactory
@@ -346,7 +347,6 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
             rewards = new address[](tokens.length);
             for (uint256 i = 0; i < tokens.length; i++) {
                 rewards[i] = address(tokens[i]);
-                if (sender != governor) revert NotGovernor();
             }
         }
 
