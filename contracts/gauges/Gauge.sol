@@ -147,7 +147,6 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         if(_poolId == bytes32(0)) return;
         (tokens, , ) = IVault(_vault).getPoolTokens(_poolId);
         for(uint256 i = 0; i < tokens.length; i++) {
-            _updateSupplyIndex(_account, address(tokens[i]));
             IERC20 token = tokens[i];
             uint256 claimableAmount = claimable[_account][address(token)];
             if (claimableAmount > 0) {
@@ -208,6 +207,16 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
         lastUpdateTime = lastTimeRewardApplicable();
         rewards[_account] = earned(_account);
         userRewardPerTokenPaid[_account] = rewardPerTokenStored;
+
+        //claim trading fees
+        address _vault = IPoolFees(poolFees).vault();
+        IERC20[] memory tokens;
+        bytes32 _poolId = IBalancerPool(stakingToken).getPoolId();
+        if(_poolId == bytes32(0)) return;
+        (tokens, , ) = IVault(_vault).getPoolTokens(_poolId);
+        for(uint256 i = 0; i < tokens.length; i++) {
+            _updateSupplyIndex(_account, address(tokens[i]));
+        }
     }
 
     /// @inheritdoc IGauge
