@@ -1083,6 +1083,7 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
 
     /// @inheritdoc IVotingEscrow
     function balanceOfNFTAt(uint256 _tokenId, uint256 _t) external view returns (uint256) {
+        if (ownershipChange[_tokenId] == block.number) return 0;
         return _balanceOfNFTAt(_tokenId, _t);
     }
 
