@@ -322,6 +322,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
     ) internal view returns(uint256 tradingFee){
         uint256 _supplied = balanceOf[_recipient]; // get LP balance of `recipient`
         uint256 _indexRatio = indexRatio[_token]; // get global index for accumulated fees
+        tradingFee = claimable[_recipient][_token];
 
         if (_supplied > 0) {
             uint256 _supplyIndex = supplyIndex[_recipient][_token]; // get last adjusted index for _recipient
@@ -329,7 +330,7 @@ contract Gauge is IGauge, ERC2771Context, ReentrancyGuard {
             uint256 _delta0 = _index - _supplyIndex; // see if there is any difference that need to be accrued
             if (_delta0 > 0) {
                 uint256 _share = (_supplied * _delta0) / 1e30; // add accrued difference for each supplied token
-                tradingFee = claimable[_recipient][_token] +_share;
+                tradingFee += _share;
             }
         }
     }
