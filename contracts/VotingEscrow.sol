@@ -220,8 +220,8 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
 
         delete idToManaged[_tokenId];
         delete weights[_tokenId][_mTokenId];
-        delete escrowType[_tokenId];
-
+        escrowType[_tokenId] = EscrowType.NORMAL;
+        
         emit WithdrawManaged(_ownerOf(_tokenId), _tokenId, _mTokenId, _total, block.timestamp);
         emit MetadataUpdate(_tokenId);
     }
