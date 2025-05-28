@@ -384,13 +384,13 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     }
 
     /// @inheritdoc IVoter
-    function killGauge(address _gauge) external {
+    function killGauge(address _gauge, address _receiver) external {
         if (_msgSender() != emergencyCouncil) revert NotEmergencyCouncil();
         if (!isAlive[_gauge]) revert GaugeAlreadyKilled();
         // Return claimable back to distributor
         uint256 _claimable = claimable[_gauge];
         if (_claimable > 0) {
-            IERC20(rewardToken).safeTransfer(distributor, _claimable);
+            IERC20(rewardToken).safeTransfer(_receiver, _claimable);
             delete claimable[_gauge];
         }
         isAlive[_gauge] = false;
