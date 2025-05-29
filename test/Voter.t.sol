@@ -384,7 +384,7 @@ contract VoterTest is BaseTest {
 
         // kill the gauge voted for
         vm.prank(voter.emergencyCouncil());
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
 
         // skip to the next epoch to be able to reset - no revert
         skipToNextEpoch(1 hours + 1);
@@ -484,7 +484,7 @@ contract VoterTest is BaseTest {
 
         // kill the gauge voted for
         vm.prank(voter.emergencyCouncil());
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
 
         vm.expectRevert(abi.encodeWithSelector(IVoter.GaugeNotAlive.selector, address(gauge)));
         voter.vote(1, pools, weights);
@@ -672,7 +672,7 @@ contract VoterTest is BaseTest {
     }
 
     function testKillGauge() public {
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
         assertFalse(voter.isAlive(address(gauge)));
     }
 
@@ -750,15 +750,15 @@ contract VoterTest is BaseTest {
     // }
 
     function testCannotKillGaugeIfAlreadyKilled() public {
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
         assertFalse(voter.isAlive(address(gauge)));
 
         vm.expectRevert(IVoter.GaugeAlreadyKilled.selector);
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
     }
 
     function testReviveGauge() public {
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
         assertFalse(voter.isAlive(address(gauge)));
 
         voter.reviveGauge(address(gauge));
@@ -774,13 +774,13 @@ contract VoterTest is BaseTest {
 
     function testCannotKillNonExistentGauge() public {
         vm.expectRevert(IVoter.GaugeAlreadyKilled.selector);
-        voter.killGauge(address(0xDEAD));
+        voter.killGauge(address(0xDEAD), address(minter));
     }
 
     function testCannotKillGaugeIfNotEmergencyCouncil() public {
         vm.expectRevert(IVoter.NotEmergencyCouncil.selector);
         vm.prank(address(owner2));
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
     }
 
     function testKilledGaugeCanWithdraw() public {
@@ -790,7 +790,7 @@ contract VoterTest is BaseTest {
         pool.approve(address(gauge), supply);
         gauge.deposit(supply);
 
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
 
         uint256 pre = pool.balanceOf(address(gauge));
         gauge.withdraw(supply);
@@ -818,7 +818,7 @@ contract VoterTest is BaseTest {
         // expect distribution
         assertGt(voter.claimable(address(gauge)), 0);
 
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
 
         voter.updateFor(address(gauge));
 
@@ -845,7 +845,7 @@ contract VoterTest is BaseTest {
         // expect distribution
         assertGt(voter.claimable(address(gauge)), 0);
 
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
 
         // distribute should update claimable to zero
         voter.distribute(0, voter.length());
@@ -880,7 +880,7 @@ contract VoterTest is BaseTest {
         gauges[1] = address(gauge2);
         voter.updateFor(gauges);
 
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
 
         voter.distribute(0, voter.length());
 

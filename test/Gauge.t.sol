@@ -33,7 +33,7 @@ contract GaugeTest is BaseTest {
     }
 
     function testCannotDepositWithRecipientWithKilledGauge() public {
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
 
         vm.expectRevert(IGauge.NotAlive.selector);
         gauge.deposit(POOL_1, address(owner2));
@@ -81,7 +81,7 @@ contract GaugeTest is BaseTest {
     }
 
     function testCannotDepositWithKilledGauge() public {
-        voter.killGauge(address(gauge));
+        voter.killGauge(address(gauge), address(minter));
 
         vm.expectRevert(IGauge.NotAlive.selector);
         gauge.deposit(POOL_1);

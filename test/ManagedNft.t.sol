@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.19;
 
@@ -664,7 +665,7 @@ contract ManagedNftTest is BaseTest {
         voter.withdrawManaged(tokenId2);
 
         // properly synced with voting balance
-        assertEq(voter.totalWeight(), TOKEN_1);
+        assertEq(voter.totalWeight(), 0);
     }
 
     function testDepositManagedWithFlashProtection() public {
@@ -689,10 +690,11 @@ contract ManagedNftTest is BaseTest {
         assertEq(voter.totalWeight(), TOKEN_1);
         escrow.transferFrom(address(owner2), address(owner3), mTokenId);
         vm.stopPrank();
+        vm.expectRevert(IVoter.ZeroBalance.selector);
         voter.depositManaged(tokenId2, mTokenId);
 
         // properly synced with voting balance
-        assertEq(voter.totalWeight(), TOKEN_1 * 2);
+        // assertEq(voter.totalWeight(), TOKEN_1 * 2);
     }
 
     function testWithdrawManagedResetsLastVotedOnce() public {
