@@ -250,7 +250,7 @@ interface IVoter {
     /// @dev Throws if not called by emergency council.
     ///      Throws if gauge already killed.
     /// @param _gauge .
-    function killGauge(address _gauge) external;
+    function killGauge(address _gauge, address _receiver) external;
 
     /// @notice Revives a killed gauge. Gauge will can receive emissions and deposits again.
     /// @dev Throws if not called by emergency council.

@@ -112,4 +112,6 @@ interface IGauge {
 
     function earnedTradingFee(address _recipient, address[] memory _tokens) external view returns (uint256[] memory tradingFees);
 
+    function claimFees() external;
+
 }

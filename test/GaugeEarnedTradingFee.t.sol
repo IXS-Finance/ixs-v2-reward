@@ -434,4 +434,157 @@ contract GaugeEarnedTradingFeeTest is BaseTest {
         assertEq(fee3sAfter2[0], fee0*2/10 + fee0*2/5);
         assertEq(fee3sAfter2[1], fee1*2/10 + fee1*2/5);
     }
+
+    function testEarnedTradingFeeMultipleDepositsBetweenNotify() public {
+        uint stakedAmount1 = 5e10;
+        uint stakedAmount2 = 3e10;
+        uint stakedAmount3 = 2e10;
+
+        // Mock the staking token balance for all users
+        deal(address(pool), address(owner), 2 * stakedAmount1);
+        deal(address(pool), address(owner2), stakedAmount2);
+        deal(address(pool), address(owner3), stakedAmount3);
+
+        // Simulate users staking
+        vm.prank(address(owner));
+        IERC20(address(pool)).approve(address(gauge), 2 * stakedAmount1);
+        vm.prank(address(owner2));
+        IERC20(address(pool)).approve(address(gauge), stakedAmount2);
+        vm.prank(address(owner3));
+        IERC20(address(pool)).approve(address(gauge), stakedAmount3);
+
+        vm.prank(address(owner));
+        gauge.deposit(stakedAmount1);
+        vm.prank(address(owner2));
+        gauge.deposit(stakedAmount2);
+        vm.prank(address(owner3));
+        gauge.deposit(stakedAmount3);
+
+        // Set up the reward token balance and approval
+        deal(address(VELO), address(voter), 2 * rewardAmount);
+        deal(address(FRAX), address(gauge), 2 * amount1);
+        deal(address(USDC), address(gauge), 2 * amount2);
+        vm.prank(address(voter));
+        IERC20(address(VELO)).approve(address(gauge), 2 * rewardAmount);
+
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(FRAX);  // FRAX
+        tokens[1] = address(USDC);  // USDC
+
+        MockPoolFees(address(gauge.poolFees())).setTokens(tokens);
+
+        // Call notifyRewardAmount as the voter
+        vm.prank(address(voter));
+        gauge.notifyRewardAmount(rewardAmount);
+
+        uint256[] memory fee1s = gauge.earnedTradingFee(address(owner), tokens);
+        uint256[] memory fee2s = gauge.earnedTradingFee(address(owner2), tokens);
+        uint256[] memory fee3s = gauge.earnedTradingFee(address(owner3), tokens);
+
+        assertEq(fee1s[0], fee0/2);
+        assertEq(fee1s[1], fee1/2);
+        assertEq(fee2s[0], fee0*3/10);
+        assertEq(fee2s[1], fee1*3/10);
+        assertEq(fee3s[0], fee0*2/10);
+        assertEq(fee3s[1], fee1*2/10);
+
+        vm.prank(address(owner));
+        gauge.deposit(stakedAmount1); // owner deposits more
+
+        vm.prank(address(voter));
+        gauge.notifyRewardAmount(rewardAmount);
+
+        // gauge.getReward(address(owner));
+        uint256[] memory fee1sAfter = gauge.earnedTradingFee(address(owner), tokens);
+
+        // vm.prank(address(owner2));
+        // gauge.getReward(address(owner2));
+        uint256[] memory fee2sAfter = gauge.earnedTradingFee(address(owner2), tokens);
+        // vm.prank(address(owner3));
+        // gauge.getReward(address(owner3));
+        uint256[] memory fee3sAfter = gauge.earnedTradingFee(address(owner3), tokens);
+
+        assertEq(fee1sAfter[0], fee0/2 + 2 * fee0 / 3);
+        assertEq(fee1sAfter[1], fee1/2 + 2 * fee1 / 3);
+        assertEq(fee2sAfter[0], fee0*3/10 + fee0*3/15);
+        assertEq(fee2sAfter[1], fee1*3/10 + fee1*3/15);
+        assertEq(fee3sAfter[0], fee0*2/10 + fee0*2/15);
+        assertEq(fee3sAfter[1], fee1*2/10 + fee1*2/15);
+    }
+    function testEarnedTradingFeeMultipleDepositsThenWithdrawBetweenNotify() public {
+        uint stakedAmount1 = 5e10;
+        uint stakedAmount2 = 3e10;
+        uint stakedAmount3 = 2e10;
+
+        // Mock the staking token balance for all users
+        deal(address(pool), address(owner), 2 * stakedAmount1);
+        deal(address(pool), address(owner2), stakedAmount2);
+        deal(address(pool), address(owner3), stakedAmount3);
+
+        // Simulate users staking
+        vm.prank(address(owner));
+        IERC20(address(pool)).approve(address(gauge), 2 * stakedAmount1);
+        vm.prank(address(owner2));
+        IERC20(address(pool)).approve(address(gauge), stakedAmount2);
+        vm.prank(address(owner3));
+        IERC20(address(pool)).approve(address(gauge), stakedAmount3);
+
+        vm.prank(address(owner));
+        gauge.deposit(stakedAmount1);
+        vm.prank(address(owner2));
+        gauge.deposit(stakedAmount2);
+        vm.prank(address(owner3));
+        gauge.deposit(stakedAmount3);
+
+        // Set up the reward token balance and approval
+        deal(address(VELO), address(voter), 2 * rewardAmount);
+        deal(address(FRAX), address(gauge), 2 * amount1);
+        deal(address(USDC), address(gauge), 2 * amount2);
+        vm.prank(address(voter));
+        IERC20(address(VELO)).approve(address(gauge), 2 * rewardAmount);
+
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(FRAX);  // FRAX
+        tokens[1] = address(USDC);  // USDC
+
+        MockPoolFees(address(gauge.poolFees())).setTokens(tokens);
+
+        // Call notifyRewardAmount as the voter
+        vm.prank(address(voter));
+        gauge.notifyRewardAmount(rewardAmount);
+
+        uint256[] memory fee1s = gauge.earnedTradingFee(address(owner), tokens);
+        uint256[] memory fee2s = gauge.earnedTradingFee(address(owner2), tokens);
+        uint256[] memory fee3s = gauge.earnedTradingFee(address(owner3), tokens);
+
+        assertEq(fee1s[0], fee0/2);
+        assertEq(fee1s[1], fee1/2);
+        assertEq(fee2s[0], fee0*3/10);
+        assertEq(fee2s[1], fee1*3/10);
+        assertEq(fee3s[0], fee0*2/10);
+        assertEq(fee3s[1], fee1*2/10);
+
+        vm.prank(address(owner));
+        // gauge.deposit(stakedAmount1); // owner deposits more
+        gauge.withdraw(4 * stakedAmount1 / 5); // owner withdraws 4/5 of their stake
+
+        vm.prank(address(owner2));
+        gauge.withdraw(stakedAmount2 / 3); // owner2 withdraws all their stake 1/3
+
+        vm.prank(address(voter));
+        gauge.notifyRewardAmount(rewardAmount);
+
+        // gauge.getReward(address(owner));
+        uint256[] memory fee1sAfter = gauge.earnedTradingFee(address(owner), tokens);
+
+        uint256[] memory fee2sAfter = gauge.earnedTradingFee(address(owner2), tokens);
+        uint256[] memory fee3sAfter = gauge.earnedTradingFee(address(owner3), tokens);
+
+        assertEq(fee1sAfter[0], fee0/2 + fee0 / 5); // owner has 1/5 of their original stake left for 2nd notify amount
+        assertEq(fee1sAfter[1], fee1/2 + fee1 / 5);
+        assertEq(fee2sAfter[0], fee0*3/10 + fee0*2/5); // owner2 has 2/5 of their original stake left for 2nd notify amount
+        assertEq(fee2sAfter[1], fee1*3/10 + fee1*2/5);
+        assertEq(fee3sAfter[0], fee0*2/10 + fee0*2/5); // owner3 has 2/5 of their original stake left for 2nd notify amount
+        assertEq(fee3sAfter[1], fee1*2/10 + fee1*2/5);
+    }
 }

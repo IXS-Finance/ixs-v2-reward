@@ -332,6 +332,7 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
         address sender = _msgSender();
         if (!IFactoryRegistry(factoryRegistry).isPoolFactoryApproved(_poolFactory)) revert FactoryPathNotApproved();
         if (gauges[_pool] != address(0)) revert GaugeExists();
+        if (sender != governor) revert NotGovernor();
 
         (address votingRewardsFactory, address gaugeFactory) = IFactoryRegistry(factoryRegistry).factoriesToPoolFactory(
             _poolFactory
@@ -346,7 +347,6 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
             rewards = new address[](tokens.length);
             for (uint256 i = 0; i < tokens.length; i++) {
                 rewards[i] = address(tokens[i]);
-                if (sender != governor) revert NotGovernor();
             }
         }
 
@@ -384,13 +384,13 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
     }
 
     /// @inheritdoc IVoter
-    function killGauge(address _gauge) external {
+    function killGauge(address _gauge, address _receiver) external {
         if (_msgSender() != emergencyCouncil) revert NotEmergencyCouncil();
         if (!isAlive[_gauge]) revert GaugeAlreadyKilled();
         // Return claimable back to distributor
         uint256 _claimable = claimable[_gauge];
         if (_claimable > 0) {
-            IERC20(rewardToken).safeTransfer(distributor, _claimable);
+            IERC20(rewardToken).safeTransfer(_receiver, _claimable);
             delete claimable[_gauge];
         }
         isAlive[_gauge] = false;
@@ -503,18 +503,31 @@ contract Voter is IVoter, ERC2771Context, ReentrancyGuard {
 
     /// @inheritdoc IVoter
     function distribute(uint256 _start, uint256 _finish) external nonReentrant {
-        IRewardsDistributor(distributor).updatePeriod();
+        uint256 reward = IRewardsDistributor(distributor).updatePeriod();
         for (uint256 x = _start; x < _finish; x++) {
-            _distribute(gauges[pools[x]]);
+            if (reward == 0) {
+            // only claim and distribute fee
+                IGauge(gauges[pools[x]]).claimFees();
+            }
+            else {
+                _distribute(gauges[pools[x]]);
+            }
         }
     }
 
     /// @inheritdoc IVoter
     function distribute(address[] memory _gauges) external nonReentrant {
-        IRewardsDistributor(distributor).updatePeriod();
+        uint256 reward = IRewardsDistributor(distributor).updatePeriod();
+
         uint256 _length = _gauges.length;
         for (uint256 x = 0; x < _length; x++) {
-            _distribute(_gauges[x]);
+            if (reward == 0) {
+            // only claim and distribute fee
+                IGauge(gauges[pools[x]]).claimFees();
+            }
+            else {
+                _distribute(gauges[pools[x]]);
+            }
         }
     }
 

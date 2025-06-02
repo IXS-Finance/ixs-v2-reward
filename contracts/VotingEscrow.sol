@@ -146,6 +146,7 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
         if (escrowType[_mTokenId] != EscrowType.MANAGED) revert NotManagedNFT();
         if (escrowType[_tokenId] != EscrowType.NORMAL) revert NotNormalNFT();
         if (_balanceOfNFTAt(_tokenId, block.timestamp) == 0) revert ZeroBalance();
+        if (deactivated[_mTokenId]) revert InvalidManagedNFTId();
 
         // adjust user nft
         int128 _amount = _locked[_tokenId].amount;
@@ -219,8 +220,8 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
 
         delete idToManaged[_tokenId];
         delete weights[_tokenId][_mTokenId];
-        delete escrowType[_tokenId];
-
+        escrowType[_tokenId] = EscrowType.NORMAL;
+        
         emit WithdrawManaged(_ownerOf(_tokenId), _tokenId, _mTokenId, _total, block.timestamp);
         emit MetadataUpdate(_tokenId);
     }
@@ -1082,6 +1083,7 @@ contract VotingEscrow is IVotingEscrow, ERC2771Context, ReentrancyGuard {
 
     /// @inheritdoc IVotingEscrow
     function balanceOfNFTAt(uint256 _tokenId, uint256 _t) external view returns (uint256) {
+        if (ownershipChange[_tokenId] == block.number) return 0;
         return _balanceOfNFTAt(_tokenId, _t);
     }
 
