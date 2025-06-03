@@ -6,7 +6,6 @@ import {IRewardsDistributor} from "./interfaces/IRewardsDistributor.sol";
 import {IIxs} from "./interfaces/IIxs.sol";
 import {IVoter} from "./interfaces/IVoter.sol";
 import {IVotingEscrow} from "./interfaces/IVotingEscrow.sol";
-import {IEpochGovernor} from "./interfaces/IEpochGovernor.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {console} from "forge-std/console.sol";
 
